@@ -249,7 +249,10 @@
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     // Show the success page (in case it was hidden)
-                    document.getElementById('success-page').style.display = 'block';
+                    const successPage = document.getElementById('success-page');
+                        if (successPage) {
+                        successPage.style.display = 'block';
+}
                     
                     // Countdown functionality
                     let countdown = 4;
