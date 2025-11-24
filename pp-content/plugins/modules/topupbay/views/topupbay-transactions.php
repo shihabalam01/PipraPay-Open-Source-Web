@@ -19,16 +19,6 @@ $total_transactions = $transactions_data['total'];
 $total_pages = ceil($total_transactions / $per_page);
 ?>
 
-<!-- Page Header -->
-<div class="page-header">
-    <div class="row align-items-end">
-        <div class="col-sm mb-2 mb-sm-0">
-            <h1 class="page-header-title">TopupBay Transactions</h1>
-            <p class="page-header-text">Manage and monitor all TopupBay transactions</p>
-        </div>
-    </div>
-</div>
-
 <!-- Bulk Action Bar (hidden by default) -->
 <div class="row justify-content-end mb-3 bulk-manage-tab" style="display: none">
     <div class="col-lg">
