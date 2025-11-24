@@ -378,42 +378,11 @@ function topupbay_get_settings() {
  */
 function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = '') {
     $conn = connectDatabase();
-    if (!$conn) {
-        error_log("TopupBay: Database connection failed in topupbay_get_transactions_admin");
-        return [
-            'transactions' => [],
-            'total' => 0
-        ];
-    }
-    
     global $db_prefix;
     
     $table_name = $db_prefix . 'tb_transactions';
     $limit = (int)$limit;
     $offset = (int)$offset;
-    
-    // Debug: Log table name
-    error_log("TopupBay: Looking for table: {$table_name}");
-    
-    // Check if table exists - try different methods
-    $table_check = $conn->query("SHOW TABLES LIKE '{$table_name}'");
-    if (!$table_check || $table_check->num_rows == 0) {
-        // Try without backticks
-        $table_check2 = $conn->query("SHOW TABLES LIKE '{$table_name}'");
-        if (!$table_check2 || $table_check2->num_rows == 0) {
-            // Try to query directly to see if it exists
-            $test_query = "SELECT COUNT(*) as cnt FROM `{$table_name}` LIMIT 1";
-            $test_result = $conn->query($test_query);
-            if (!$test_result) {
-                error_log("TopupBay: Table {$table_name} does not exist or query failed: " . $conn->error);
-                $conn->close();
-                return [
-                    'transactions' => [],
-                    'total' => 0
-                ];
-            }
-        }
-    }
     
     // Build WHERE clause for search
     $where_clause = '';
@@ -424,23 +393,11 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     
     // Get transactions with search and pagination
     $query = "SELECT * FROM `{$table_name}` {$where_clause} ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
-    error_log("TopupBay: Executing query: " . $query);
     $result = $conn->query($query);
-    
-    if (!$result) {
-        error_log("TopupBay: Query failed - " . $conn->error . " | Query: " . $query);
-        $conn->close();
-        return [
-            'transactions' => [],
-            'total' => 0
-        ];
-    }
-    
-    error_log("TopupBay: Query returned " . $result->num_rows . " rows");
     
     $transactions = [];
     
-    if ($result->num_rows > 0) {
+    if ($result && $result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             // Decode metadata if it's JSON
             if (!empty($row['transaction_metadata']) && $row['transaction_metadata'] !== '--') {
@@ -450,8 +407,6 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
                 }
             }
             
-            // Skip verification for admin display to improve performance
-            // Verification is handled by cron job
             $transactions[] = $row;
         }
     }
@@ -459,18 +414,10 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     // Get total count (with search filter)
     $count_query = "SELECT COUNT(*) as total FROM `{$table_name}` {$where_clause}";
     $count_result = $conn->query($count_query);
-    $total = 0;
-    if ($count_result) {
-        $count_row = $count_result->fetch_assoc();
-        $total = (int)$count_row['total'];
-        error_log("TopupBay: Total count: " . $total);
-    } else {
-        error_log("TopupBay: Count query failed - " . $conn->error);
-    }
+    $count_row = $count_result->fetch_assoc();
+    $total = (int)$count_row['total'];
     
     $conn->close();
-    
-    error_log("TopupBay: Returning " . count($transactions) . " transactions, total: " . $total);
     
     return [
         'transactions' => $transactions,
