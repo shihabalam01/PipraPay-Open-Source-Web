@@ -185,7 +185,18 @@ function topupbay_inject_menu_item() {
         return;
     }
     
-    // Inject JavaScript to add TopupBay Transaction menu item above Transaction menu
+    // Check if TopupBay plugin is active
+    global $db_prefix;
+    $conn = connectDatabase();
+    $response_plugin = json_decode(getData($db_prefix.'plugins', 'WHERE plugin_slug="topupbay" AND status="active"'), true);
+    $conn->close();
+    
+    // Only proceed if plugin is active
+    if (!isset($response_plugin['status']) || $response_plugin['status'] !== true) {
+        return;
+    }
+    
+    // Inject JavaScript to add TopupBay Transaction menu item and hide default Transaction menu
     // Output before HTML starts - will be placed in body
     ?>
     <script>
@@ -201,6 +212,9 @@ function topupbay_inject_menu_item() {
             
             const transactionNavItem = transactionMenu.closest(".nav-item");
             
+            // Hide the default Transaction menu item
+            transactionNavItem.style.display = 'none';
+            
             // Check if already injected
             if (document.querySelector(".nav-btn-topupbay-transaction")) {
                 return;
@@ -211,7 +225,7 @@ function topupbay_inject_menu_item() {
             topupbayNavItem.className = "nav-item";
             topupbayNavItem.innerHTML = '<a class="nav-link nav-btn-topupbay-transaction" href="javascript:void(0);" onclick="load_content(\'TopupBay Transaction\',\'plugin-loader?page=modules--topupbay&view=transactions\',\'nav-btn-topupbay-transaction\')"><i class="bi bi-wallet nav-icon"></i><span class="nav-link-title">TopupBay Transaction</span></a>';
             
-            // Insert before Transaction menu item
+            // Insert before Transaction menu item (which is now hidden)
             transactionNavItem.parentNode.insertBefore(topupbayNavItem, transactionNavItem);
         }
         
