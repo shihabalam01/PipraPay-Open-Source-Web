@@ -3,10 +3,16 @@ if (!defined('pp_allowed_access')) {
     die('Direct access not allowed');
 }
 
+// Pagination settings
+$per_page = 100;
+$current_page = isset($_GET['p']) ? max(1, (int)$_GET['p']) : 1;
+$offset = ($current_page - 1) * $per_page;
+
 // Get transactions for display
-$transactions_data = topupbay_get_transactions_admin(50, 0);
+$transactions_data = topupbay_get_transactions_admin($per_page, $offset);
 $transactions = $transactions_data['transactions'];
 $total_transactions = $transactions_data['total'];
+$total_pages = ceil($total_transactions / $per_page);
 ?>
 
 <!-- Page Header -->
@@ -151,6 +157,79 @@ $total_transactions = $transactions_data['total'];
                     </tbody>
                 </table>
             </div>
+            
+            <?php if ($total_pages > 1): ?>
+            <!-- Pagination -->
+            <nav aria-label="Transaction pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <!-- Previous Button -->
+                    <li class="page-item <?= $current_page <= 1 ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=modules--topupbay&view=transactions&p=<?= max(1, $current_page - 1) ?>" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    
+                    <?php
+                    // Show page numbers (max 7 pages visible)
+                    $start_page = max(1, $current_page - 3);
+                    $end_page = min($total_pages, $current_page + 3);
+                    
+                    // Adjust if we're near the start
+                    if ($current_page <= 4) {
+                        $start_page = 1;
+                        $end_page = min(7, $total_pages);
+                    }
+                    
+                    // Adjust if we're near the end
+                    if ($current_page >= $total_pages - 3) {
+                        $start_page = max(1, $total_pages - 6);
+                        $end_page = $total_pages;
+                    }
+                    
+                    // First page
+                    if ($start_page > 1): ?>
+                        <li class="page-item">
+                            <a class="page-link" href="?page=modules--topupbay&view=transactions&p=1">1</a>
+                        </li>
+                        <?php if ($start_page > 2): ?>
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                    
+                    <!-- Page Numbers -->
+                    <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
+                        <li class="page-item <?= $i == $current_page ? 'active' : '' ?>">
+                            <a class="page-link" href="?page=modules--topupbay&view=transactions&p=<?= $i ?>"><?= $i ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    
+                    <!-- Last page -->
+                    <?php if ($end_page < $total_pages): ?>
+                        <?php if ($end_page < $total_pages - 1): ?>
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        <?php endif; ?>
+                        <li class="page-item">
+                            <a class="page-link" href="?page=modules--topupbay&view=transactions&p=<?= $total_pages ?>"><?= $total_pages ?></a>
+                        </li>
+                    <?php endif; ?>
+                    
+                    <!-- Next Button -->
+                    <li class="page-item <?= $current_page >= $total_pages ? 'disabled' : '' ?>">
+                        <a class="page-link" href="?page=modules--topupbay&view=transactions&p=<?= min($total_pages, $current_page + 1) ?>" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="text-center mt-2 text-muted">
+                <small>Showing <?= $offset + 1 ?> to <?= min($offset + $per_page, $total_transactions) ?> of <?= $total_transactions ?> transactions</small>
+            </div>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>
