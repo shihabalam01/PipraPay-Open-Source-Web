@@ -379,6 +379,7 @@ function topupbay_get_settings() {
 function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = '') {
     $conn = connectDatabase();
     if (!$conn) {
+        error_log("TopupBay: Database connection failed in topupbay_get_transactions_admin");
         return [
             'transactions' => [],
             'total' => 0
@@ -391,6 +392,17 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     $limit = (int)$limit;
     $offset = (int)$offset;
     
+    // Check if table exists
+    $table_check = $conn->query("SHOW TABLES LIKE '{$table_name}'");
+    if (!$table_check || $table_check->num_rows == 0) {
+        error_log("TopupBay: Table {$table_name} does not exist");
+        $conn->close();
+        return [
+            'transactions' => [],
+            'total' => 0
+        ];
+    }
+    
     // Build WHERE clause for search
     $where_clause = '';
     if (!empty($search)) {
@@ -402,9 +414,18 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     $query = "SELECT * FROM `{$table_name}` {$where_clause} ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
     $result = $conn->query($query);
     
+    if (!$result) {
+        error_log("TopupBay: Query failed - " . $conn->error . " | Query: " . $query);
+        $conn->close();
+        return [
+            'transactions' => [],
+            'total' => 0
+        ];
+    }
+    
     $transactions = [];
     
-    if ($result && $result->num_rows > 0) {
+    if ($result->num_rows > 0) {
         while ($row = $result->fetch_assoc()) {
             // Decode metadata if it's JSON
             if (!empty($row['transaction_metadata']) && $row['transaction_metadata'] !== '--') {
@@ -414,11 +435,8 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
                 }
             }
             
-            // Only show verification info - DO NOT auto-verify here
-            // Let cron job handle verification to avoid double verification bug
-            $verification = topupbay_verify_with_pp_transaction($row);
-            $row['pp_verification'] = $verification;
-            
+            // Skip verification for admin display to improve performance
+            // Verification is handled by cron job
             $transactions[] = $row;
         }
     }
@@ -430,6 +448,8 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     if ($count_result) {
         $count_row = $count_result->fetch_assoc();
         $total = (int)$count_row['total'];
+    } else {
+        error_log("TopupBay: Count query failed - " . $conn->error);
     }
     
     $conn->close();
