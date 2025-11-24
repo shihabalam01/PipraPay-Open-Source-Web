@@ -6,6 +6,7 @@ if (!defined('pp_allowed_access')) {
 }
 
 add_action('pp_admin_initialize', 'topupbay_create_table');
+add_action('pp_admin_initialize', 'topupbay_inject_menu_item');
 add_action('pp_cron', 'topupbay_auto_verify_pending_transactions');
 
 if (!function_exists('pp_cron_topupbay')) {
@@ -176,6 +177,54 @@ function topupbay_create_table() {
     }
     
     $conn->close();
+}
+
+function topupbay_inject_menu_item() {
+    // Only inject on admin pages
+    if (!isset($_SERVER['REQUEST_URI']) || strpos($_SERVER['REQUEST_URI'], '/admin') === false) {
+        return;
+    }
+    
+    // Inject JavaScript to add TopupBay Transaction menu item above Transaction menu
+    // Output before HTML starts - will be placed in body
+    ?>
+    <script>
+    (function() {
+        function injectTopupBayMenu() {
+            // Find the Transaction menu item
+            const transactionMenu = document.querySelector(".nav-btn-transaction");
+            if (!transactionMenu || !transactionMenu.closest(".nav-item")) {
+                // Retry after a short delay if menu not loaded yet
+                setTimeout(injectTopupBayMenu, 100);
+                return;
+            }
+            
+            const transactionNavItem = transactionMenu.closest(".nav-item");
+            
+            // Check if already injected
+            if (document.querySelector(".nav-btn-topupbay-transaction")) {
+                return;
+            }
+            
+            // Create TopupBay Transaction menu item
+            const topupbayNavItem = document.createElement("div");
+            topupbayNavItem.className = "nav-item";
+            topupbayNavItem.innerHTML = '<a class="nav-link nav-btn-topupbay-transaction" href="javascript:void(0);" onclick="load_content(\'TopupBay Transaction\',\'plugin-loader?page=modules--topupbay&view=transactions\',\'nav-btn-topupbay-transaction\')"><i class="bi bi-wallet nav-icon"></i><span class="nav-link-title">TopupBay Transaction</span></a>';
+            
+            // Insert before Transaction menu item
+            transactionNavItem.parentNode.insertBefore(topupbayNavItem, transactionNavItem);
+        }
+        
+        // Wait for DOM to be ready
+        if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", injectTopupBayMenu);
+        } else {
+            // DOM already loaded, try immediately
+            injectTopupBayMenu();
+        }
+    })();
+    </script>
+    <?php
 }
 
 
