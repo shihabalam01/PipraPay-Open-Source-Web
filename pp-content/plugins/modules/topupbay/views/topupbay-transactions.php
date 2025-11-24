@@ -10,11 +10,29 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : (isset($_POST['search
 $limit = 100;
 $offset = ($page - 1) * $limit;
 
+// Debug: Check database connection and table
+global $db_prefix;
+$conn = connectDatabase();
+if ($conn) {
+    $table_name = $db_prefix . 'tb_transactions';
+    $test_query = "SELECT COUNT(*) as cnt FROM `{$table_name}`";
+    $test_result = $conn->query($test_query);
+    if ($test_result) {
+        $test_row = $test_result->fetch_assoc();
+        error_log("TopupBay Debug: Table {$table_name} exists, has " . $test_row['cnt'] . " records");
+    } else {
+        error_log("TopupBay Debug: Table query failed - " . $conn->error);
+    }
+    $conn->close();
+}
+
 try {
+    error_log("TopupBay View: Calling topupbay_get_transactions_admin with limit=$limit, offset=$offset, search='$search'");
     $transactions_data = topupbay_get_transactions_admin($limit, $offset, $search);
     $transactions = $transactions_data['transactions'] ?? [];
     $total_transactions = $transactions_data['total'] ?? 0;
     $total_pages = $total_transactions > 0 ? ceil($total_transactions / $limit) : 1;
+    error_log("TopupBay View: Got " . count($transactions) . " transactions, total: $total_transactions");
 } catch (Exception $e) {
     $transactions = [];
     $total_transactions = 0;
@@ -95,9 +113,27 @@ try {
     </div>
     
     <div class="card-body">
+        <?php 
+        // Debug output (remove after fixing)
+        global $db_prefix;
+        $debug_conn = connectDatabase();
+        if ($debug_conn) {
+            $debug_table = $db_prefix . 'tb_transactions';
+            $debug_query = "SELECT COUNT(*) as cnt FROM `{$debug_table}`";
+            $debug_result = $debug_conn->query($debug_query);
+            if ($debug_result) {
+                $debug_row = $debug_result->fetch_assoc();
+                echo "<!-- DEBUG: Table {$debug_table} has {$debug_row['cnt']} records. Function returned " . count($transactions) . " transactions, total: {$total_transactions} -->";
+            }
+            $debug_conn->close();
+        }
+        ?>
         <?php if (empty($transactions)): ?>
             <div class="alert alert-info">
                 <i class="bi-info-circle"></i> No transactions found.
+                <?php if ($total_transactions > 0): ?>
+                    <br><small>Note: Database shows <?= $total_transactions ?> transactions, but query returned 0. Check error logs.</small>
+                <?php endif; ?>
             </div>
         <?php else: ?>
             <div class="table-responsive">

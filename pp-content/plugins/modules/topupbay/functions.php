@@ -392,15 +392,27 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     $limit = (int)$limit;
     $offset = (int)$offset;
     
-    // Check if table exists
+    // Debug: Log table name
+    error_log("TopupBay: Looking for table: {$table_name}");
+    
+    // Check if table exists - try different methods
     $table_check = $conn->query("SHOW TABLES LIKE '{$table_name}'");
     if (!$table_check || $table_check->num_rows == 0) {
-        error_log("TopupBay: Table {$table_name} does not exist");
-        $conn->close();
-        return [
-            'transactions' => [],
-            'total' => 0
-        ];
+        // Try without backticks
+        $table_check2 = $conn->query("SHOW TABLES LIKE '{$table_name}'");
+        if (!$table_check2 || $table_check2->num_rows == 0) {
+            // Try to query directly to see if it exists
+            $test_query = "SELECT COUNT(*) as cnt FROM `{$table_name}` LIMIT 1";
+            $test_result = $conn->query($test_query);
+            if (!$test_result) {
+                error_log("TopupBay: Table {$table_name} does not exist or query failed: " . $conn->error);
+                $conn->close();
+                return [
+                    'transactions' => [],
+                    'total' => 0
+                ];
+            }
+        }
     }
     
     // Build WHERE clause for search
@@ -412,6 +424,7 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     
     // Get transactions with search and pagination
     $query = "SELECT * FROM `{$table_name}` {$where_clause} ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
+    error_log("TopupBay: Executing query: " . $query);
     $result = $conn->query($query);
     
     if (!$result) {
@@ -422,6 +435,8 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
             'total' => 0
         ];
     }
+    
+    error_log("TopupBay: Query returned " . $result->num_rows . " rows");
     
     $transactions = [];
     
@@ -448,11 +463,14 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     if ($count_result) {
         $count_row = $count_result->fetch_assoc();
         $total = (int)$count_row['total'];
+        error_log("TopupBay: Total count: " . $total);
     } else {
         error_log("TopupBay: Count query failed - " . $conn->error);
     }
     
     $conn->close();
+    
+    error_log("TopupBay: Returning " . count($transactions) . " transactions, total: " . $total);
     
     return [
         'transactions' => $transactions,
