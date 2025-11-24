@@ -29,13 +29,7 @@ function topupbay_admin_page() {
     // If we reach here, it means it's a GET request or POST was not handled
     
     // Check if view parameter is set (for transactions page)
-    // Check both GET and parse from REQUEST_URI if needed
     $view = $_GET['view'] ?? '';
-    if (empty($view) && isset($_SERVER['REQUEST_URI'])) {
-        if (preg_match('/[?&]view=([^&]+)/', $_SERVER['REQUEST_URI'], $matches)) {
-            $view = $matches[1];
-        }
-    }
     
     if ($view === 'transactions') {
         $viewFile = __DIR__ . '/views/topupbay-transactions.php';
