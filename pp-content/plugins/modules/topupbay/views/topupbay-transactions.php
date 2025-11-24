@@ -279,16 +279,33 @@ function updateTransactionStatus(transactionId, status) {
     });
 }
 
-// Add event listeners for status dropdown
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.status-option').forEach(option => {
-        option.addEventListener('click', function(e) {
+// Add event listeners for status dropdown using event delegation
+// This works with dynamically loaded content (AJAX)
+(function() {
+    // Use event delegation on document (works with AJAX-loaded content)
+    document.addEventListener('click', function(e) {
+        const statusOption = e.target.closest('.status-option');
+        if (statusOption) {
             e.preventDefault();
-            const transactionId = this.getAttribute('data-transaction-id');
-            const status = this.getAttribute('data-status');
-            updateTransactionStatus(transactionId, status);
-        });
+            e.stopPropagation();
+            
+            const transactionId = statusOption.getAttribute('data-transaction-id');
+            const status = statusOption.getAttribute('data-status');
+            
+            if (transactionId && status) {
+                // Close dropdown
+                const dropdownElement = statusOption.closest('.dropdown').querySelector('[data-bs-toggle="dropdown"]');
+                if (dropdownElement) {
+                    const dropdown = bootstrap.Dropdown.getInstance(dropdownElement);
+                    if (dropdown) {
+                        dropdown.hide();
+                    }
+                }
+                
+                updateTransactionStatus(transactionId, status);
+            }
+        }
     });
-});
+})();
 </script>
 
