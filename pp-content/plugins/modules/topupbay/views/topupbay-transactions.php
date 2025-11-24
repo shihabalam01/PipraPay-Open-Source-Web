@@ -3,13 +3,17 @@ if (!defined('pp_allowed_access')) {
     die('Direct access not allowed');
 }
 
-// Pagination settings
+// Pagination and filtering settings
 $per_page = 100;
 $current_page = isset($_GET['p']) ? max(1, (int)$_GET['p']) : 1;
 $offset = ($current_page - 1) * $per_page;
 
+// Get filter parameters (sanitize for display, function will handle DB escaping)
+$filter_status = isset($_GET['status']) ? htmlspecialchars(trim($_GET['status']), ENT_QUOTES, 'UTF-8') : 'all';
+$filter_search = isset($_GET['search']) ? htmlspecialchars(trim($_GET['search']), ENT_QUOTES, 'UTF-8') : '';
+
 // Get transactions for display
-$transactions_data = topupbay_get_transactions_admin($per_page, $offset);
+$transactions_data = topupbay_get_transactions_admin($per_page, $offset, $filter_status, $filter_search);
 $transactions = $transactions_data['transactions'];
 $total_transactions = $transactions_data['total'];
 $total_pages = ceil($total_transactions / $per_page);
@@ -25,12 +29,68 @@ $total_pages = ceil($total_transactions / $per_page);
     </div>
 </div>
 
+<!-- Bulk Action Bar (hidden by default) -->
+<div class="row justify-content-end mb-3 bulk-manage-tab" style="display: none">
+    <div class="col-lg">
+        <div class="d-sm-flex justify-content-lg-end align-items-sm-center">
+            <span class="d-block d-sm-inline-block fs-5 me-3 mb-2 mb-sm-0">
+                <span id="bulk-manage-tab-counter">0</span> Selected
+            </span>
+            <a class="btn btn-outline-danger btn-sm mb-2 mb-sm-0 me-2 btn-bulk-action-delete" href="javascript:void(0)" onclick="bulkAction('btn-bulk-action-delete', 'delete')">
+                <i class="bi-trash"></i> Delete
+            </a>
+            <a class="btn btn-success btn-sm mb-2 mb-sm-0 me-2 btn-bulk-action-verified" href="javascript:void(0)" onclick="bulkAction('btn-bulk-action-verified', 'verified')">
+                <i class="bi-check-circle"></i> Verified
+            </a>
+            <a class="btn btn-warning btn-sm mb-2 mb-sm-0 me-2 btn-bulk-action-pending" href="javascript:void(0)" onclick="bulkAction('btn-bulk-action-pending', 'pending')">
+                <i class="bi-clock"></i> Pending
+            </a>
+            <a class="btn btn-danger btn-sm mb-2 mb-sm-0 me-2 btn-bulk-action-canceled" href="javascript:void(0)" onclick="bulkAction('btn-bulk-action-canceled', 'canceled')">
+                <i class="bi-x-circle"></i> Canceled
+            </a>
+        </div>
+        <span class="response-bulk-action"></span>
+    </div>
+</div>
+
 <!-- Transactions Table Card -->
 <div class="card">
     <div class="card-header">
-        <div class="row justify-content-between align-items-center">
+        <div class="row justify-content-between align-items-center flex-grow-1">
             <div class="col-md">
                 <h4 class="card-header-title">All Transactions (<?= $total_transactions ?>)</h4>
+            </div>
+            
+            <div class="col-auto">
+                <!-- Filter -->
+                <div class="row align-items-sm-center">
+                    <div class="col-sm-auto">
+                        <div class="row align-items-center gx-0">
+                            <div class="col">
+                                <span class="text-secondary me-2">Status:</span>
+                            </div>
+                            <div class="col-auto">
+                                <select class="form-select form-select-sm form-select-borderless tb-status-filter" onchange="applyFilters()">
+                                    <option value="all" <?= $filter_status === 'all' ? 'selected' : '' ?>>All</option>
+                                    <option value="pending" <?= $filter_status === 'pending' ? 'selected' : '' ?>>Pending</option>
+                                    <option value="verified" <?= $filter_status === 'verified' ? 'selected' : '' ?>>Verified</option>
+                                    <option value="canceled" <?= $filter_status === 'canceled' ? 'selected' : '' ?>>Canceled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md">
+                        <form onsubmit="applyFilters(); return false;">
+                            <div class="input-group input-group-merge input-group-flush">
+                                <div class="input-group-prepend input-group-text">
+                                    <i class="bi-search"></i>
+                                </div>
+                                <input id="tbSearchInput" type="search" class="form-control" placeholder="Search" aria-label="Search" value="<?= htmlspecialchars($filter_search) ?>" onkeyup="if(event.key === 'Enter') applyFilters()">
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -45,6 +105,9 @@ $total_pages = ceil($total_transactions / $per_page);
                 <table class="table table-hover mx-auto" style="width: 100%;">
                     <thead>
                         <tr>
+                            <th scope="col" class="table-column-pe-0" style="width: 40px;">
+                                <input type="checkbox" id="select-all-tb" class="form-check-input">
+                            </th>
                             <th>Payment ID</th>
                             <th>Customer</th>
                             <th>Payment Method</th>
@@ -59,6 +122,9 @@ $total_pages = ceil($total_transactions / $per_page);
                     <tbody>
                         <?php foreach ($transactions as $txn): ?>
                             <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input select-box-tb" value="<?= $txn['id'] ?>">
+                                </td>
                                 <td>
                                     <?php if (!empty($txn['payment_id']) && $txn['payment_id'] !== '--'): ?>
                                         <code><?= htmlspecialchars($txn['payment_id']) ?></code>
@@ -158,18 +224,28 @@ $total_pages = ceil($total_transactions / $per_page);
                 </table>
             </div>
             
-            <?php if ($total_pages > 1): ?>
+            <?php 
+            // Helper function to build pagination URL with filters
+            function buildPaginationUrl($page, $status, $search) {
+                $params = ['page' => 'modules--topupbay', 'view' => 'transactions', 'p' => $page];
+                if ($status !== 'all') $params['status'] = $status;
+                if (!empty($search)) $params['search'] = $search;
+                return '?' . http_build_query($params);
+            }
+            
+            if ($total_pages > 1): ?>
             <!-- Pagination -->
             <nav aria-label="Transaction pagination" class="mt-4">
                 <ul class="pagination justify-content-center">
                     <!-- Previous Button -->
                     <li class="page-item <?= $current_page <= 1 ? 'disabled' : '' ?>">
-                        <a class="page-link" href="?page=modules--topupbay&view=transactions&p=<?= max(1, $current_page - 1) ?>" aria-label="Previous">
+                        <a class="page-link" href="<?= buildPaginationUrl(max(1, $current_page - 1), $filter_status, $filter_search) ?>" aria-label="Previous">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
                     
                     <?php
+                    
                     // Show page numbers (max 7 pages visible)
                     $start_page = max(1, $current_page - 3);
                     $end_page = min($total_pages, $current_page + 3);
@@ -189,7 +265,7 @@ $total_pages = ceil($total_transactions / $per_page);
                     // First page
                     if ($start_page > 1): ?>
                         <li class="page-item">
-                            <a class="page-link" href="?page=modules--topupbay&view=transactions&p=1">1</a>
+                            <a class="page-link" href="<?= buildPaginationUrl(1, $filter_status, $filter_search) ?>">1</a>
                         </li>
                         <?php if ($start_page > 2): ?>
                             <li class="page-item disabled">
@@ -201,7 +277,7 @@ $total_pages = ceil($total_transactions / $per_page);
                     <!-- Page Numbers -->
                     <?php for ($i = $start_page; $i <= $end_page; $i++): ?>
                         <li class="page-item <?= $i == $current_page ? 'active' : '' ?>">
-                            <a class="page-link" href="?page=modules--topupbay&view=transactions&p=<?= $i ?>"><?= $i ?></a>
+                            <a class="page-link" href="<?= buildPaginationUrl($i, $filter_status, $filter_search) ?>"><?= $i ?></a>
                         </li>
                     <?php endfor; ?>
                     
@@ -213,13 +289,13 @@ $total_pages = ceil($total_transactions / $per_page);
                             </li>
                         <?php endif; ?>
                         <li class="page-item">
-                            <a class="page-link" href="?page=modules--topupbay&view=transactions&p=<?= $total_pages ?>"><?= $total_pages ?></a>
+                            <a class="page-link" href="<?= buildPaginationUrl($total_pages, $filter_status, $filter_search) ?>"><?= $total_pages ?></a>
                         </li>
                     <?php endif; ?>
                     
                     <!-- Next Button -->
                     <li class="page-item <?= $current_page >= $total_pages ? 'disabled' : '' ?>">
-                        <a class="page-link" href="?page=modules--topupbay&view=transactions&p=<?= min($total_pages, $current_page + 1) ?>" aria-label="Next">
+                        <a class="page-link" href="<?= buildPaginationUrl(min($total_pages, $current_page + 1), $filter_status, $filter_search) ?>" aria-label="Next">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </li>
@@ -307,5 +383,132 @@ function updateTransactionStatus(transactionId, status) {
         }
     });
 })();
+
+// Bulk selection functionality
+(function() {
+    // Select all checkbox
+    const selectAllCheckbox = document.getElementById('select-all-tb');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('.select-box-tb');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            updateBulkActionBar();
+        });
+    }
+    
+    // Individual checkbox clicks (event delegation for dynamic content)
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('select-box-tb')) {
+            updateBulkActionBar();
+            
+            // Update select-all state
+            const selectAll = document.getElementById('select-all-tb');
+            if (selectAll) {
+                const allChecked = document.querySelectorAll('.select-box-tb:checked').length;
+                const total = document.querySelectorAll('.select-box-tb').length;
+                selectAll.checked = allChecked === total && total > 0;
+                selectAll.indeterminate = allChecked > 0 && allChecked < total;
+            }
+        }
+    });
+    
+    function updateBulkActionBar() {
+        const selectedCount = document.querySelectorAll('.select-box-tb:checked').length;
+        const counter = document.getElementById('bulk-manage-tab-counter');
+        const actionBar = document.querySelector('.bulk-manage-tab');
+        
+        if (counter) counter.textContent = selectedCount;
+        if (actionBar) {
+            actionBar.style.display = selectedCount > 0 ? 'flex' : 'none';
+        }
+    }
+})();
+
+// Apply filters function
+function applyFilters() {
+    const status = document.querySelector('.tb-status-filter')?.value || 'all';
+    const search = document.getElementById('tbSearchInput')?.value || '';
+    
+    const params = new URLSearchParams({
+        page: 'modules--topupbay',
+        view: 'transactions',
+        p: '1'
+    });
+    
+    if (status !== 'all') params.set('status', status);
+    if (search) params.set('search', search);
+    
+    load_content('TopupBay Transaction', 'plugin-loader?' + params.toString(), 'nav-btn-topupbay-transaction');
+}
+
+// Bulk action function
+function bulkAction(buttonClass, action) {
+    const button = document.querySelector('.' + buttonClass);
+    if (!button) return;
+    
+    const originalHTML = button.innerHTML;
+    button.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>';
+    button.disabled = true;
+    
+    const ids = [];
+    document.querySelectorAll('.select-box-tb:checked').forEach(cb => {
+        ids.push(cb.value);
+    });
+    
+    if (ids.length === 0) {
+        document.querySelector('.response-bulk-action').innerHTML = '<div class="alert alert-danger mt-2" role="alert">Please select at least one transaction.</div>';
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+        return;
+    }
+    
+    // Confirm delete action
+    if (action === 'delete') {
+        if (!confirm('Are you sure you want to delete ' + ids.length + ' transaction(s)? This action cannot be undone.')) {
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+            return;
+        }
+    }
+    
+    const formData = new FormData();
+    
+    if (action === 'delete') {
+        formData.append('topupbay-action', 'bulk-delete');
+    } else {
+        formData.append('topupbay-action', 'bulk-update-status');
+        formData.append('status', action);
+    }
+    
+    formData.append('transaction_ids', JSON.stringify(ids));
+    formData.append('webpage', 'plugin-loader');
+    
+    fetch('/admin/plugin-loader?page=modules--topupbay&view=transactions', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+        
+        if (data.status === true) {
+            document.querySelector('.response-bulk-action').innerHTML = '<div class="alert alert-success mt-2" role="alert">' + data.message + '</div>';
+            // Reload page after 1 second
+            setTimeout(() => {
+                applyFilters();
+            }, 1000);
+        } else {
+            document.querySelector('.response-bulk-action').innerHTML = '<div class="alert alert-danger mt-2" role="alert">' + (data.message || 'Failed to process bulk action') + '</div>';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        button.innerHTML = originalHTML;
+        button.disabled = false;
+        document.querySelector('.response-bulk-action').innerHTML = '<div class="alert alert-danger mt-2" role="alert">An error occurred. Please try again.</div>';
+    });
+}
 </script>
 

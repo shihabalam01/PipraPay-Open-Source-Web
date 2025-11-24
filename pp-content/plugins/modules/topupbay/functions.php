@@ -143,6 +143,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         }
     }
     
+    if ($_POST['topupbay-action'] == 'bulk-update-status') {
+        $transaction_ids_json = isset($_POST['transaction_ids']) ? $_POST['transaction_ids'] : '';
+        $transaction_ids = json_decode($transaction_ids_json, true);
+        $new_status = isset($_POST['status']) ? trim($_POST['status']) : '';
+        
+        if (empty($transaction_ids) || !is_array($transaction_ids)) {
+            echo json_encode(['status' => false, 'message' => 'No transactions selected']);
+            exit();
+        }
+        
+        if (empty($new_status)) {
+            echo json_encode(['status' => false, 'message' => 'Status is required']);
+            exit();
+        }
+        
+        $allowed_statuses = ['pending', 'verified', 'canceled'];
+        $new_status_lower = strtolower($new_status);
+        if (!in_array($new_status_lower, $allowed_statuses)) {
+            echo json_encode(['status' => false, 'message' => 'Invalid status value']);
+            exit();
+        }
+        
+        global $db_prefix;
+        $table_name = $db_prefix . 'tb_transactions';
+        $conn = connectDatabase();
+        
+        if (!$conn) {
+            echo json_encode(['status' => false, 'message' => 'Database connection failed']);
+            exit();
+        }
+        
+        $ids = array_map('intval', $transaction_ids);
+        $ids_string = implode(',', $ids);
+        $new_status_escaped = escape_string($new_status_lower);
+        
+        // Update all selected transactions
+        $update_query = "UPDATE `{$table_name}` SET `transaction_status` = '{$new_status_escaped}' WHERE `id` IN ($ids_string)";
+        $update_result = $conn->query($update_query);
+        
+        if ($update_result) {
+            $updated_count = $conn->affected_rows;
+            
+            // If setting to verified, verify and mark SMS as used for each transaction
+            if ($new_status_lower === 'verified') {
+                foreach ($ids as $txn_id) {
+                    $current_query = "SELECT * FROM `{$table_name}` WHERE `id` = " . $txn_id;
+                    $current_result = $conn->query($current_query);
+                    if ($current_result && $current_result->num_rows > 0) {
+                        $current_row = $current_result->fetch_assoc();
+                        $previous_status = strtolower($current_row['transaction_status'] ?? '');
+                        
+                        if ($previous_status !== 'verified') {
+                            $verification = topupbay_verify_with_pp_transaction($current_row);
+                            if ($verification['verified'] === true && isset($verification['sms_data']['id'])) {
+                                $sms_id = (int)$verification['sms_data']['id'];
+                                $update_sms_query = "UPDATE `{$db_prefix}sms_data` SET `status` = 'used' WHERE `id` = $sms_id AND `status` = 'approved'";
+                                $conn->query($update_sms_query);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Send webhooks for updated transactions
+            foreach ($ids as $txn_id) {
+                if ($new_status_lower === 'verified' || $new_status_lower === 'canceled') {
+                    topupbay_send_webhook($txn_id, $new_status_lower);
+                }
+            }
+            
+            $conn->close();
+            echo json_encode(['status' => true, 'message' => "Successfully updated {$updated_count} transaction(s) to {$new_status}"]);
+            exit();
+        } else {
+            $conn->close();
+            echo json_encode(['status' => false, 'message' => 'Failed to update transactions: ' . $conn->error]);
+            exit();
+        }
+    }
+    
+    if ($_POST['topupbay-action'] == 'bulk-delete') {
+        $transaction_ids_json = isset($_POST['transaction_ids']) ? $_POST['transaction_ids'] : '';
+        $transaction_ids = json_decode($transaction_ids_json, true);
+        
+        if (empty($transaction_ids) || !is_array($transaction_ids)) {
+            echo json_encode(['status' => false, 'message' => 'No transactions selected']);
+            exit();
+        }
+        
+        global $db_prefix;
+        $table_name = $db_prefix . 'tb_transactions';
+        $conn = connectDatabase();
+        
+        if (!$conn) {
+            echo json_encode(['status' => false, 'message' => 'Database connection failed']);
+            exit();
+        }
+        
+        $ids = array_map('intval', $transaction_ids);
+        $ids_string = implode(',', $ids);
+        
+        $delete_query = "DELETE FROM `{$table_name}` WHERE `id` IN ($ids_string)";
+        $delete_result = $conn->query($delete_query);
+        
+        if ($delete_result) {
+            $deleted_count = $conn->affected_rows;
+            $conn->close();
+            echo json_encode(['status' => true, 'message' => "Successfully deleted {$deleted_count} transaction(s)"]);
+            exit();
+        } else {
+            $conn->close();
+            echo json_encode(['status' => false, 'message' => 'Failed to delete transactions: ' . $conn->error]);
+            exit();
+        }
+    }
+    
     // If we reach here, the action was not recognized
     echo json_encode(['status' => false, 'message' => 'Unknown action']);
     exit();
@@ -276,7 +392,7 @@ function topupbay_get_settings() {
 /**
  * Get all TopupBay transactions (for admin use)
  */
-function topupbay_get_transactions_admin($limit = 50, $offset = 0) {
+function topupbay_get_transactions_admin($limit = 50, $offset = 0, $status_filter = 'all', $search = '') {
     $conn = connectDatabase();
     global $db_prefix;
     
@@ -284,7 +400,31 @@ function topupbay_get_transactions_admin($limit = 50, $offset = 0) {
     $limit = (int)$limit;
     $offset = (int)$offset;
     
-    $query = "SELECT * FROM `{$table_name}` ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
+    // Build WHERE clause for filtering
+    $where_conditions = [];
+    
+    // Status filter
+    if ($status_filter !== 'all' && !empty($status_filter)) {
+        $status_escaped = escape_string($status_filter);
+        $where_conditions[] = "LOWER(`transaction_status`) = '" . strtolower($status_escaped) . "'";
+    }
+    
+    // Search filter
+    if (!empty($search)) {
+        $search_escaped = escape_string($search);
+        $where_conditions[] = "(
+            `payment_id` LIKE '%{$search_escaped}%' OR 
+            `transaction_id` LIKE '%{$search_escaped}%' OR 
+            `customer` LIKE '%{$search_escaped}%' OR 
+            `payment_method` LIKE '%{$search_escaped}%' OR 
+            `payment_sender_number` LIKE '%{$search_escaped}%'
+        )";
+    }
+    
+    $where_clause = !empty($where_conditions) ? 'WHERE ' . implode(' AND ', $where_conditions) : '';
+    
+    // Get transactions with filters
+    $query = "SELECT * FROM `{$table_name}` {$where_clause} ORDER BY `id` DESC LIMIT $limit OFFSET $offset";
     $result = $conn->query($query);
     
     $transactions = [];
@@ -308,11 +448,11 @@ function topupbay_get_transactions_admin($limit = 50, $offset = 0) {
         }
     }
     
-    // Get total count
-    $count_query = "SELECT COUNT(*) as total FROM `{$table_name}`";
+    // Get total count with filters
+    $count_query = "SELECT COUNT(*) as total FROM `{$table_name}` {$where_clause}";
     $count_result = $conn->query($count_query);
     $count_row = $count_result->fetch_assoc();
-    $total = $count_row['total'];
+    $total = (int)$count_row['total'];
     
     $conn->close();
     
