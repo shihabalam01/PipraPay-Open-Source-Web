@@ -378,17 +378,24 @@ function topupbay_get_settings() {
  */
 function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = '') {
     $conn = connectDatabase();
+    if (!$conn) {
+        return [
+            'transactions' => [],
+            'total' => 0
+        ];
+    }
+    
     global $db_prefix;
     
     $table_name = $db_prefix . 'tb_transactions';
     $limit = (int)$limit;
     $offset = (int)$offset;
-    $search = escape_string($search);
     
     // Build WHERE clause for search
     $where_clause = '';
     if (!empty($search)) {
-        $where_clause = "WHERE (`payment_id` LIKE '%{$search}%' OR `transaction_id` LIKE '%{$search}%')";
+        $search_escaped = mysqli_real_escape_string($conn, $search);
+        $where_clause = "WHERE (`payment_id` LIKE '%{$search_escaped}%' OR `transaction_id` LIKE '%{$search_escaped}%')";
     }
     
     // Get transactions with search and pagination
@@ -419,8 +426,11 @@ function topupbay_get_transactions_admin($limit = 100, $offset = 0, $search = ''
     // Get total count (with search filter)
     $count_query = "SELECT COUNT(*) as total FROM `{$table_name}` {$where_clause}";
     $count_result = $conn->query($count_query);
-    $count_row = $count_result->fetch_assoc();
-    $total = $count_row['total'];
+    $total = 0;
+    if ($count_result) {
+        $count_row = $count_result->fetch_assoc();
+        $total = (int)$count_row['total'];
+    }
     
     $conn->close();
     

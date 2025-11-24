@@ -4,15 +4,23 @@ if (!defined('pp_allowed_access')) {
 }
 
 // Get initial transactions (100 per page, page 1)
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+// Check both GET and POST for parameters (POST is used by load_content)
+$page = isset($_GET['page']) ? (int)$_GET['page'] : (isset($_POST['page']) ? (int)$_POST['page'] : 1);
+$search = isset($_GET['search']) ? trim($_GET['search']) : (isset($_POST['search']) ? trim($_POST['search']) : '');
 $limit = 100;
 $offset = ($page - 1) * $limit;
 
-$transactions_data = topupbay_get_transactions_admin($limit, $offset, $search);
-$transactions = $transactions_data['transactions'];
-$total_transactions = $transactions_data['total'];
-$total_pages = ceil($total_transactions / $limit);
+try {
+    $transactions_data = topupbay_get_transactions_admin($limit, $offset, $search);
+    $transactions = $transactions_data['transactions'] ?? [];
+    $total_transactions = $transactions_data['total'] ?? 0;
+    $total_pages = $total_transactions > 0 ? ceil($total_transactions / $limit) : 1;
+} catch (Exception $e) {
+    $transactions = [];
+    $total_transactions = 0;
+    $total_pages = 1;
+    error_log("TopupBay Transactions Error: " . $e->getMessage());
+}
 ?>
 
 <!-- Page Header -->
