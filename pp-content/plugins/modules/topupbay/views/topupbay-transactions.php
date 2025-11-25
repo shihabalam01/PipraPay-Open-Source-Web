@@ -107,38 +107,41 @@ $total_pages = ceil($total_transactions / $per_page);
                             <th>Status</th>
                             <th>Product</th>
                             <th>Created At</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($transactions as $txn): ?>
+                        <?php foreach ($transactions as $txn): 
+                            $view_url = 'plugin-loader?page=modules--topupbay&view=view-transaction&ref=' . $txn['id'];
+                        ?>
                             <tr>
-                                <td>
-                                    <input type="checkbox" class="form-check-input select-box-tb" value="<?= $txn['id'] ?>">
+                                <td onclick="event.stopPropagation();">
+                                    <input type="checkbox" class="form-check-input select-box-tb" value="<?= $txn['id'] ?>" onclick="event.stopPropagation();">
                                 </td>
-                                <td>
+                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
                                     <?php if (!empty($txn['payment_id']) && $txn['payment_id'] !== '--'): ?>
                                         <code><?= htmlspecialchars($txn['payment_id']) ?></code>
                                     <?php else: ?>
                                         <span class="text-muted">--</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?= htmlspecialchars($txn['customer']) ?></td>
-                                <td><?= htmlspecialchars($txn['payment_method']) ?></td>
-                                <td>
+                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;"><?= htmlspecialchars($txn['customer']) ?></td>
+                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;"><?= htmlspecialchars($txn['payment_method']) ?></td>
+                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
                                     <?php if (!empty($txn['payment_sender_number']) && $txn['payment_sender_number'] !== '--'): ?>
                                         <code><?= htmlspecialchars($txn['payment_sender_number']) ?></code>
                                     <?php else: ?>
                                         <span class="text-muted">--</span>
                                     <?php endif; ?>
                                 </td>
-                                <td>
+                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
                                     <?= htmlspecialchars($txn['transaction_amount']) ?> 
                                     <?= htmlspecialchars($txn['transaction_currency']) ?>
                                 </td>
-                                <td>
+                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
                                     <code><?= htmlspecialchars($txn['transaction_id']) ?></code>
                                 </td>
-                                <td>
+                                <td onclick="event.stopPropagation();">
                                     <?php 
                                     $status = strtolower($txn['transaction_status'] ?? 'pending');
                                     // Map TopupBay statuses to PipraPay badge styles
@@ -206,8 +209,15 @@ $total_pages = ceil($total_transactions / $per_page);
                                         </ul>
                                     </div>
                                 </td>
-                                <td><?= htmlspecialchars($txn['product_name']) ?></td>
-                                <td><?= htmlspecialchars($txn['created_at']) ?></td>
+                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;"><?= htmlspecialchars($txn['product_name']) ?></td>
+                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;"><?= htmlspecialchars($txn['created_at']) ?></td>
+                                <td onclick="event.stopPropagation();">
+                                    <div class="btn-group" role="group">
+                                        <a class="btn btn-white btn-sm" href="javascript:void(0)" onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')">
+                                            <i class="bi-eye me-1"></i> View
+                                        </a>
+                                    </div>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     </tbody>

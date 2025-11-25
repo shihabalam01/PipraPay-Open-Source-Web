@@ -283,11 +283,19 @@ function topupbay_create_table() {
         `transaction_webhook` VARCHAR(755) DEFAULT '--',
         `transaction_metadata` VARCHAR(755) DEFAULT '--',
         `product_name` VARCHAR(255) DEFAULT '--',
+        `payment_receipt` VARCHAR(755) DEFAULT '--',
         `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     
     if ($conn->query($sql) === TRUE) {
-        // Table created successfully
+        // Check if payment_receipt column exists, if not add it (for existing tables)
+        $check_column = $conn->query("SHOW COLUMNS FROM `{$table_name}` LIKE 'payment_receipt'");
+        if ($check_column->num_rows == 0) {
+            $alter_sql = "ALTER TABLE `{$table_name}` ADD COLUMN `payment_receipt` VARCHAR(755) DEFAULT '--' AFTER `product_name`";
+            if (!$conn->query($alter_sql)) {
+                error_log("TopupBay: Error adding payment_receipt column: " . $conn->error);
+            }
+        }
     } else {
         error_log("TopupBay: Error creating table: " . $conn->error);
     }
@@ -842,6 +850,20 @@ function topupbay_insert_transaction_api() {
     $transaction_status = escape_string($data['transaction_status'] ?? 'pending');
     $product_name = escape_string($data['product_name'] ?? '--');
     
+    // Handle payment_receipt - check if it's a file upload or URL/text
+    $payment_receipt = '--';
+    if (isset($_FILES['payment_receipt']) && $_FILES['payment_receipt']['error'] === UPLOAD_ERR_OK) {
+        // File upload
+        $max_file_size = 10 * 1024 * 1024; // 10MB
+        $upload_result = json_decode(uploadImage($_FILES['payment_receipt'], $max_file_size), true);
+        if ($upload_result['status'] === true) {
+            $payment_receipt = 'https://' . $_SERVER['HTTP_HOST'] . '/pp-external/media/' . $upload_result['file'];
+        }
+    } elseif (isset($data['payment_receipt']) && !empty($data['payment_receipt'])) {
+        // URL or text from JSON/form data
+        $payment_receipt = escape_string($data['payment_receipt']);
+    }
+    
     $settings = topupbay_get_settings();
     $transaction_webhook = escape_string($settings['default_webhook'] ?? '--');
     
@@ -880,7 +902,8 @@ function topupbay_insert_transaction_api() {
         `transaction_status`,
         `transaction_webhook`,
         `transaction_metadata`,
-        `product_name`
+        `product_name`,
+        `payment_receipt`
     ) VALUES (
         '$payment_id',
         '$customer',
@@ -892,7 +915,8 @@ function topupbay_insert_transaction_api() {
         '$transaction_status',
         '$transaction_webhook',
         '$transaction_metadata',
-        '$product_name'
+        '$product_name',
+        '$payment_receipt'
     )";
     
     if ($conn->query($query) === TRUE) {

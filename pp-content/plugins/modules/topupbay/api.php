@@ -203,6 +203,20 @@ function topupbay_insert_transaction_api() {
     $transaction_status = escape_string($data['transaction_status'] ?? 'pending');
     $product_name = escape_string($data['product_name'] ?? '--');
     
+    // Handle payment_receipt - check if it's a file upload or URL/text
+    $payment_receipt = '--';
+    if (isset($_FILES['payment_receipt']) && $_FILES['payment_receipt']['error'] === UPLOAD_ERR_OK) {
+        // File upload
+        $max_file_size = 10 * 1024 * 1024; // 10MB
+        $upload_result = json_decode(uploadImage($_FILES['payment_receipt'], $max_file_size), true);
+        if ($upload_result['status'] === true) {
+            $payment_receipt = 'https://' . $_SERVER['HTTP_HOST'] . '/pp-external/media/' . $upload_result['file'];
+        }
+    } elseif (isset($data['payment_receipt']) && !empty($data['payment_receipt'])) {
+        // URL or text from JSON/form data
+        $payment_receipt = escape_string($data['payment_receipt']);
+    }
+    
     // Get webhook URL from plugin settings (not from API request)
     $settings = topupbay_get_settings();
     $transaction_webhook = escape_string($settings['default_webhook'] ?? '--');
@@ -244,7 +258,8 @@ function topupbay_insert_transaction_api() {
         `transaction_status`,
         `transaction_webhook`,
         `transaction_metadata`,
-        `product_name`
+        `product_name`,
+        `payment_receipt`
     ) VALUES (
         '$payment_id',
         '$customer',
@@ -256,7 +271,8 @@ function topupbay_insert_transaction_api() {
         '$transaction_status',
         '$transaction_webhook',
         '$transaction_metadata',
-        '$product_name'
+        '$product_name',
+        '$payment_receipt'
     )";
     
     if ($conn->query($query) === TRUE) {

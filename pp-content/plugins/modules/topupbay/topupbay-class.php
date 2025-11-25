@@ -33,6 +33,8 @@ function topupbay_admin_page() {
     
     if ($view === 'transactions') {
         $viewFile = __DIR__ . '/views/topupbay-transactions.php';
+    } elseif ($view === 'view-transaction') {
+        $viewFile = __DIR__ . '/views/view-topupbay-transaction.php';
     } else {
         $viewFile = __DIR__ . '/views/admin-ui.php';
     }
