@@ -76,7 +76,7 @@ $total_pages = ceil($total_transactions / $per_page);
                                 <div class="input-group-prepend input-group-text">
                                     <i class="bi-search"></i>
                                 </div>
-                                <input id="tbSearchInput" type="search" class="form-control" placeholder="Search" aria-label="Search" value="<?= htmlspecialchars($filter_search) ?>" onkeyup="if(event.key === 'Enter') applyFilters()">
+                                <input id="tbSearchInput" type="search" class="form-control" placeholder="Search" aria-label="Search" value="<?= htmlspecialchars($filter_search) ?>" onkeyup="if(event.key === 'Enter') applyFilters()" oninput="handleSearchInput(event)">
                             </div>
                         </form>
                     </div>
@@ -413,6 +413,27 @@ function updateTransactionStatus(transactionId, status) {
         }
     }
 })();
+
+// Handle search input with debounce, but immediate trigger on clear
+let searchTimeout = null;
+function handleSearchInput(event) {
+    const searchValue = event.target.value;
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+        clearTimeout(searchTimeout);
+    }
+    
+    // If search is cleared (empty), trigger immediately
+    if (searchValue === '') {
+        applyFilters();
+    } else {
+        // Otherwise, debounce for 500ms
+        searchTimeout = setTimeout(() => {
+            applyFilters();
+        }, 500);
+    }
+}
 
 // Apply filters function
 function applyFilters() {
