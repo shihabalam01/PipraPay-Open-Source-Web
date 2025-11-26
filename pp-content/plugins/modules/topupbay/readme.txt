@@ -1,6 +1,6 @@
 === TopupBay ===
-Contributors: PipraPay
-Donate link: https://piprapay.com/
+Contributors:TopupBay
+Donate link: 
 Tags: transaction, api, webhook, topupbay
 Requires at least: 1.0
 Tested up to: 1.0
