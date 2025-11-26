@@ -119,27 +119,27 @@ $total_pages = ceil($total_transactions / $per_page);
                                 <td onclick="handleBulkRowClick(this)">
                                     <input type="checkbox" class="form-check-input select-box-tb" value="<?= $txn['id'] ?>" onclick="handleBulkCheckboxClick(event)">
                                 </td>
-                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
+                                <td>
                                     <?php if (!empty($txn['payment_id']) && $txn['payment_id'] !== '--'): ?>
                                         <code><?= htmlspecialchars($txn['payment_id']) ?></code>
                                     <?php else: ?>
                                         <span class="text-muted">--</span>
                                     <?php endif; ?>
                                 </td>
-                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;"><?= htmlspecialchars($txn['customer']) ?></td>
-                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;"><?= htmlspecialchars($txn['payment_method']) ?></td>
-                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
+                                <td><?= htmlspecialchars($txn['customer']) ?></td>
+                                <td><?= htmlspecialchars($txn['payment_method']) ?></td>
+                                <td>
                                     <?php if (!empty($txn['payment_sender_number']) && $txn['payment_sender_number'] !== '--'): ?>
                                         <code><?= htmlspecialchars($txn['payment_sender_number']) ?></code>
                                     <?php else: ?>
                                         <span class="text-muted">--</span>
                                     <?php endif; ?>
                                 </td>
-                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
+                                <td>
                                     <?= htmlspecialchars($txn['transaction_amount']) ?> 
                                     <?= htmlspecialchars($txn['transaction_currency']) ?>
                                 </td>
-                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
+                                <td>
                                     <code><?= htmlspecialchars($txn['transaction_id']) ?></code>
                                 </td>
                                 <td onclick="event.stopPropagation();">
@@ -213,8 +213,8 @@ $total_pages = ceil($total_transactions / $per_page);
                                         </ul>
                                     </div>
                                 </td>
-                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;"><?= htmlspecialchars($txn['product_name']) ?></td>
-                                <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;"><?= htmlspecialchars($txn['created_at']) ?></td>
+                                <td><?= htmlspecialchars($txn['product_name']) ?></td>
+                                <td><?= htmlspecialchars($txn['created_at']) ?></td>
                                 <td onclick="event.stopPropagation();">
                                     <div class="btn-group" role="group">
                                         <a class="btn btn-white btn-sm" href="javascript:void(0)" onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')">
