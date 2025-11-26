@@ -80,7 +80,6 @@ Content-Type: application/json
   "product_name": "Product Name"
 }
 ```
-
 Required Fields:
 - customer
 - transaction_amount
@@ -144,19 +143,6 @@ The plugin creates a table `tb_transactions` with the following fields:
 * API key management
 * Transaction listing
 
-== Frequently Asked Questions ==
-
-= How do I get my API key? =
-After activating the plugin, go to More -> Modules -> TopupBay and set your API key. You can generate a random key using the "Generate" button.
-
-= Where is the API endpoint? =
-The API endpoint is: `/payment/?topupbay-api=1&api_key=YOUR_API_KEY`
-
-= Can I use webhooks? =
-Yes, you can provide a webhook URL in the `transaction_webhook` field when creating a transaction. The webhook will be stored and can be used for notifications.
-
-= What format should metadata be in? =
-Metadata can be either a JSON object or a JSON string. It will be stored as a string in the database.
 
 == Upgrade Notice ==
 
