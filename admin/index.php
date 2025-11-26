@@ -190,7 +190,7 @@
   </script>
 </head>
 
-<body class="has-navbar-vertical-aside footer-offset">
+<body class="has-navbar-vertical-aside navbar-vertical-aside-show-xl   footer-offset">
     <div class="progress" style=" position: fixed; top: 0; width: 100%; left: 0; height: 3px; z-index: 101; ">
       <div class="progress-bar" role="progressbar" style="width: 25%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
     </div>
