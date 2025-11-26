@@ -5,6 +5,20 @@ if (!defined('pp_allowed_access')) {
     }
 }
 
+if (!function_exists('topupbay_json_response')) {
+    /**
+     * Send a JSON response and exit immediately.
+     */
+    function topupbay_json_response(array $payload, int $status_code = 200) {
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+        }
+        http_response_code($status_code);
+        echo json_encode($payload);
+        exit();
+    }
+}
+
 add_action('pp_admin_initialize', 'topupbay_create_table');
 add_action('pp_admin_initialize', 'topupbay_inject_menu_item');
 add_action('pp_cron', 'topupbay_auto_verify_pending_transactions');
@@ -16,14 +30,12 @@ if (!function_exists('pp_cron_topupbay')) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
-    header('Content-Type: application/json');
     
     if ($_POST['topupbay-action'] == 'save-api-key') {
         $api_key = escape_string($_POST['api_key'] ?? '');
         
         if (empty($api_key)) {
-            echo json_encode(['status' => false, 'message' => 'API key is required']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'API key is required']);
         }
         
         $settings = pp_get_plugin_setting('topupbay');
@@ -32,11 +44,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         $success = pp_set_plugin_setting('topupbay', $settings);
         
         if ($success) {
-            echo json_encode(['status' => true, 'message' => 'API key saved successfully!']);
-        } else {
-            echo json_encode(['status' => false, 'message' => 'Failed to save API key']);
+            topupbay_json_response(['status' => true, 'message' => 'API key saved successfully!']);
         }
-        exit();
+        
+        topupbay_json_response(['status' => false, 'message' => 'Failed to save API key']);
     }
     
     if ($_POST['topupbay-action'] == 'save-settings') {
@@ -44,14 +55,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         $default_webhook = escape_string($_POST['default_webhook'] ?? '');
         
         if (empty($api_key)) {
-            echo json_encode(['status' => false, 'message' => 'API key is required']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'API key is required']);
         }
         
         // Validate webhook URL if provided
         if (!empty($default_webhook) && !filter_var($default_webhook, FILTER_VALIDATE_URL)) {
-            echo json_encode(['status' => false, 'message' => 'Invalid webhook URL format']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Invalid webhook URL format']);
         }
         
         $settings = pp_get_plugin_setting('topupbay');
@@ -61,17 +70,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         $success = pp_set_plugin_setting('topupbay', $settings);
         
         if ($success) {
-            echo json_encode(['status' => true, 'message' => 'Settings saved successfully!']);
-        } else {
-            echo json_encode(['status' => false, 'message' => 'Failed to save settings']);
+            topupbay_json_response(['status' => true, 'message' => 'Settings saved successfully!']);
         }
-        exit();
+        
+        topupbay_json_response(['status' => false, 'message' => 'Failed to save settings']);
     }
     
     if ($_POST['topupbay-action'] == 'generate-api-key') {
         $api_key = rand().uniqid().rand().rand().uniqid().rand();
-        echo json_encode(['status' => true, 'api_key' => $api_key]);
-        exit();
+        topupbay_json_response(['status' => true, 'api_key' => $api_key]);
     }
     
     if ($_POST['topupbay-action'] == 'update-status') {
@@ -79,15 +86,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         $new_status = isset($_POST['status']) ? trim($_POST['status']) : '';
         
         if (empty($transaction_id) || empty($new_status)) {
-            echo json_encode(['status' => false, 'message' => 'Transaction ID and status are required']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Transaction ID and status are required']);
         }
         
         $allowed_statuses = ['pending', 'verified', 'canceled'];
         $new_status_lower = strtolower($new_status);
         if (!in_array($new_status_lower, $allowed_statuses)) {
-            echo json_encode(['status' => false, 'message' => 'Invalid status value']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Invalid status value']);
         }
         
         global $db_prefix;
@@ -96,8 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         // Get current transaction data
         $conn = connectDatabase();
         if (!$conn) {
-            echo json_encode(['status' => false, 'message' => 'Database connection failed']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Database connection failed']);
         }
         
         $current_query = "SELECT * FROM `{$table_name}` WHERE `id` = " . $transaction_id;
@@ -105,8 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         
         if (!$current_result || $current_result->num_rows === 0) {
             $conn->close();
-            echo json_encode(['status' => false, 'message' => 'Transaction not found']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Transaction not found']);
         }
         
         $current_row = $current_result->fetch_assoc();
@@ -120,14 +123,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         if ($update_result === TRUE) {
             // If manually set to verified, verify and mark SMS as used
             if ($new_status_lower === 'verified' && $previous_status !== 'verified') {
-                $conn = connectDatabase();
                 $verification = topupbay_verify_with_pp_transaction($current_row);
                 if ($verification['verified'] === true && isset($verification['sms_data']['id'])) {
                     $sms_id = (int)$verification['sms_data']['id'];
                     $update_sms_query = "UPDATE `{$db_prefix}sms_data` SET `status` = 'used' WHERE `id` = $sms_id AND `status` = 'approved'";
                     $conn->query($update_sms_query);
                 }
-                $conn->close();
             }
             
             // Send webhook if status changed
@@ -135,11 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
                 topupbay_send_webhook($transaction_id, $new_status_lower);
             }
             
-            echo json_encode(['status' => true, 'message' => 'Status updated successfully']);
-            exit();
+            $conn->close();
+            topupbay_json_response(['status' => true, 'message' => 'Status updated successfully']);
         } else {
-            echo json_encode(['status' => false, 'message' => 'Failed to update status: ' . $conn->error]);
-            exit();
+            $conn->close();
+            topupbay_json_response(['status' => false, 'message' => 'Failed to update status: ' . $conn->error]);
         }
     }
     
@@ -149,20 +150,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         $new_status = isset($_POST['status']) ? trim($_POST['status']) : '';
         
         if (empty($transaction_ids) || !is_array($transaction_ids)) {
-            echo json_encode(['status' => false, 'message' => 'No transactions selected']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'No transactions selected']);
         }
         
         if (empty($new_status)) {
-            echo json_encode(['status' => false, 'message' => 'Status is required']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Status is required']);
         }
         
         $allowed_statuses = ['pending', 'verified', 'canceled'];
         $new_status_lower = strtolower($new_status);
         if (!in_array($new_status_lower, $allowed_statuses)) {
-            echo json_encode(['status' => false, 'message' => 'Invalid status value']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Invalid status value']);
         }
         
         global $db_prefix;
@@ -170,8 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         $conn = connectDatabase();
         
         if (!$conn) {
-            echo json_encode(['status' => false, 'message' => 'Database connection failed']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Database connection failed']);
         }
         
         $ids = array_map('intval', $transaction_ids);
@@ -214,12 +211,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
             }
             
             $conn->close();
-            echo json_encode(['status' => true, 'message' => "Successfully updated {$updated_count} transaction(s) to {$new_status}"]);
-            exit();
+            topupbay_json_response(['status' => true, 'message' => "Successfully updated {$updated_count} transaction(s) to {$new_status}"]);
         } else {
             $conn->close();
-            echo json_encode(['status' => false, 'message' => 'Failed to update transactions: ' . $conn->error]);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Failed to update transactions: ' . $conn->error]);
         }
     }
     
@@ -228,8 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         $transaction_ids = json_decode($transaction_ids_json, true);
         
         if (empty($transaction_ids) || !is_array($transaction_ids)) {
-            echo json_encode(['status' => false, 'message' => 'No transactions selected']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'No transactions selected']);
         }
         
         global $db_prefix;
@@ -237,8 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         $conn = connectDatabase();
         
         if (!$conn) {
-            echo json_encode(['status' => false, 'message' => 'Database connection failed']);
-            exit();
+            topupbay_json_response(['status' => false, 'message' => 'Database connection failed']);
         }
         
         $ids = array_map('intval', $transaction_ids);
@@ -250,18 +243,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['topupbay-action'])) {
         if ($delete_result) {
             $deleted_count = $conn->affected_rows;
             $conn->close();
-            echo json_encode(['status' => true, 'message' => "Successfully deleted {$deleted_count} transaction(s)"]);
-            exit();
-        } else {
-            $conn->close();
-            echo json_encode(['status' => false, 'message' => 'Failed to delete transactions: ' . $conn->error]);
-            exit();
+            topupbay_json_response(['status' => true, 'message' => "Successfully deleted {$deleted_count} transaction(s)"]);
         }
+
+        $conn->close();
+        topupbay_json_response(['status' => false, 'message' => 'Failed to delete transactions: ' . $conn->error]);
     }
     
     // If we reach here, the action was not recognized
-    echo json_encode(['status' => false, 'message' => 'Unknown action']);
-    exit();
+    topupbay_json_response(['status' => false, 'message' => 'Unknown action']);
 }
 
 function topupbay_create_table() {
@@ -798,8 +788,8 @@ function topupbay_get_all_transactions_api() {
     }
     
     $conn->close();
-    
-    echo json_encode([
+
+    topupbay_json_response([
         'status' => true,
         'count' => count($transactions),
         'data' => $transactions
@@ -818,13 +808,11 @@ function topupbay_insert_transaction_api() {
     }
     
     if (empty($data)) {
-        http_response_code(400);
-        echo json_encode([
+        topupbay_json_response([
             'status' => false,
             'type' => 'Missing_Data',
             'message' => 'Invalid request data'
-        ]);
-        exit();
+        ], 400);
     }
 
     $required_fields = ['payment_id', 'customer', 'payment_method', 'payment_sender_number', 'transaction_id'];
@@ -837,13 +825,11 @@ function topupbay_insert_transaction_api() {
     }
     
     if (!empty($missing_fields)) {
-        http_response_code(400);
-        echo json_encode([
+        topupbay_json_response([
             'status' => false,
             'type' => 'Missing_Data',
             'message' => 'Missing required fields: ' . implode(', ', $missing_fields)
-        ]);
-        exit();
+        ], 400);
     }
     
     $payment_id = escape_string($data['payment_id'] ?? '--');
@@ -886,13 +872,11 @@ function topupbay_insert_transaction_api() {
         $check_result = topupbay_check_transaction_exists($transaction_id);
         if ($check_result['exists'] === true) {
             $conn->close();
-        http_response_code(400);
-        echo json_encode([
-            'status' => false,
-            'type' => 'Wrong_transaction_ID',
-            'message' => 'Transaction ID already exists. Duplicate transaction IDs are not allowed.'
-        ]);
-            exit();
+            topupbay_json_response([
+                'status' => false,
+                'type' => 'Wrong_transaction_ID',
+                'message' => 'Transaction ID already exists. Duplicate transaction IDs are not allowed.'
+            ], 400);
         }
     }
     
@@ -970,20 +954,18 @@ function topupbay_insert_transaction_api() {
         
         $response_type = $transaction['transaction_status'] === 'verified' ? 'Success' : ucfirst($transaction['transaction_status'] ?? 'Pending');
 
-        http_response_code(201);
-        echo json_encode([
+        topupbay_json_response([
             'status' => true,
             'type' => $response_type,
             'message' => 'Transaction created successfully',
             'data' => $response_data
-        ]);
+        ], 201);
     } else {
         $conn->close();
-        http_response_code(500);
-        echo json_encode([
+        topupbay_json_response([
             'status' => false,
             'type' => 'Server_Error',
             'message' => 'Failed to create transaction. Please try again.'
-        ]);
+        ], 500);
     }
 }

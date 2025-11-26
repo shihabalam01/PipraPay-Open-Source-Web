@@ -45,9 +45,7 @@ if (file_exists(__DIR__ . '/functions.php')) {
 
 // Check if this is a TopupBay API request
 if (!isset($_GET['topupbay-api']) || $_GET['topupbay-api'] != '1') {
-    http_response_code(404);
-    echo json_encode(['status' => false, 'message' => 'Not found']);
-    exit();
+    topupbay_json_response(['status' => false, 'message' => 'Not found'], 404);
 }
 
 // Set JSON header
@@ -80,12 +78,10 @@ if (empty($provided_api_key)) {
 }
 
 if (empty($provided_api_key)) {
-    http_response_code(401);
-    echo json_encode([
-        'status' => false, 
+    topupbay_json_response([
+        'status' => false,
         'message' => 'API key is required. Please provide it in the HTTP header: mh-topupbay-api-key'
-    ]);
-    exit();
+    ], 401);
 }
 
 // Verify API key
@@ -93,9 +89,7 @@ $settings = pp_get_plugin_setting('topupbay');
 $stored_api_key = $settings['api_key'] ?? '';
 
 if (empty($stored_api_key) || $provided_api_key !== $stored_api_key) {
-    http_response_code(401);
-    echo json_encode(['status' => false, 'message' => 'Invalid API key']);
-    exit();
+    topupbay_json_response(['status' => false, 'message' => 'Invalid API key'], 401);
 }
 
 // Handle GET request - Fetch all transactions
@@ -111,226 +105,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Method not allowed
-http_response_code(405);
-echo json_encode(['status' => false, 'message' => 'Method not allowed']);
-exit();
-
-/**
- * Get all transactions (API version)
- */
-function topupbay_get_all_transactions_api() {
-    $conn = connectDatabase();
-    global $db_prefix;
-    
-    $table_name = $db_prefix . 'tb_transactions';
-    
-    $query = "SELECT * FROM `{$table_name}` ORDER BY `id` DESC";
-    $result = $conn->query($query);
-    
-    $transactions = [];
-    
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            // Decode metadata if it's JSON
-            if (!empty($row['transaction_metadata']) && $row['transaction_metadata'] !== '--') {
-                $decoded = json_decode($row['transaction_metadata'], true);
-                if (json_last_error() === JSON_ERROR_NONE) {
-                    $row['transaction_metadata'] = $decoded;
-                }
-            }
-            $transactions[] = $row;
-        }
-    }
-    
-    $conn->close();
-    
-    echo json_encode([
-        'status' => true,
-        'count' => count($transactions),
-        'data' => $transactions
-    ]);
-}
-
-/**
- * Insert new transaction (API version)
- */
-function topupbay_insert_transaction_api() {
-    $conn = connectDatabase();
-    global $db_prefix;
-    
-    // Get JSON input
-    $json = file_get_contents("php://input");
-    $data = json_decode($json, true);
-    
-    // If JSON decode failed, try POST data
-    if ($data === null && !empty($_POST)) {
-        $data = $_POST;
-    }
-    
-    if (empty($data)) {
-        http_response_code(400);
-        echo json_encode(['status' => false, 'message' => 'Invalid request data']);
-        exit();
-    }
-    
-    // Validate required fields (customer is optional)
-    $required_fields = ['payment_id', 'customer', 'payment_method', 'payment_sender_number', 'transaction_id'];
-    $missing_fields = [];
-    
-    foreach ($required_fields as $field) {
-        if (empty($data[$field])) {
-            $missing_fields[] = $field;
-        }
-    }
-    
-    if (!empty($missing_fields)) {
-        http_response_code(400);
-        echo json_encode([
-            'status' => false,
-            'message' => 'Missing required fields: ' . implode(', ', $missing_fields)
-        ]);
-        exit();
-    }
-    
-    // Prepare data
-    $payment_id = escape_string($data['payment_id'] ?? '--');
-    $customer = escape_string($data['customer'] ?? '--');
-    $payment_method = escape_string($data['payment_method'] ?? '--');
-    $transaction_amount = escape_string($data['transaction_amount'] ?? '0');
-    $transaction_currency = escape_string($data['transaction_currency'] ?? 'USD');
-    $payment_sender_number = escape_string($data['payment_sender_number'] ?? '--');
-    $transaction_id = escape_string($data['transaction_id'] ?? '--');
-    $transaction_status = escape_string($data['transaction_status'] ?? 'pending');
-    $product_name = escape_string($data['product_name'] ?? '--');
-    
-    // Handle payment_receipt - check if it's a file upload or URL/text
-    $payment_receipt = '--';
-    if (isset($_FILES['payment_receipt']) && $_FILES['payment_receipt']['error'] === UPLOAD_ERR_OK) {
-        // File upload
-        $max_file_size = 10 * 1024 * 1024; // 10MB
-        $upload_result = json_decode(uploadImage($_FILES['payment_receipt'], $max_file_size), true);
-        if ($upload_result['status'] === true) {
-            $payment_receipt = 'https://' . $_SERVER['HTTP_HOST'] . '/pp-external/media/' . $upload_result['file'];
-        }
-    } elseif (isset($data['payment_receipt']) && !empty($data['payment_receipt'])) {
-        // URL or text from JSON/form data
-        $payment_receipt = escape_string($data['payment_receipt']);
-    }
-    
-    // Get webhook URL from plugin settings (not from API request)
-    $settings = topupbay_get_settings();
-    $transaction_webhook = escape_string($settings['default_webhook'] ?? '--');
-    
-    // Handle metadata (should be JSON)
-    $transaction_metadata = '--';
-    if (isset($data['transaction_metadata'])) {
-        if (is_array($data['transaction_metadata'])) {
-            $transaction_metadata = escape_string(json_encode($data['transaction_metadata']));
-        } else {
-            $transaction_metadata = escape_string($data['transaction_metadata']);
-        }
-    }
-    
-    // Check if transaction_id already exists (prevent duplicates)
-    if ($transaction_id !== '--' && !empty($transaction_id)) {
-        $check_result = topupbay_check_transaction_exists($transaction_id);
-        if ($check_result['exists'] === true) {
-            $conn->close();
-            http_response_code(400);
-            echo json_encode([
-                'status' => false,
-                'message' => 'Transaction ID already exists. Duplicate transaction IDs are not allowed.'
-            ]);
-            exit();
-        }
-    }
-    
-    $table_name = $db_prefix . 'tb_transactions';
-    
-    $query = "INSERT INTO `{$table_name}` (
-        `payment_id`,
-        `customer`,
-        `payment_method`,
-        `transaction_amount`,
-        `transaction_currency`,
-        `payment_sender_number`,
-        `transaction_id`,
-        `transaction_status`,
-        `transaction_webhook`,
-        `transaction_metadata`,
-        `product_name`,
-        `payment_receipt`
-    ) VALUES (
-        '$payment_id',
-        '$customer',
-        '$payment_method',
-        '$transaction_amount',
-        '$transaction_currency',
-        '$payment_sender_number',
-        '$transaction_id',
-        '$transaction_status',
-        '$transaction_webhook',
-        '$transaction_metadata',
-        '$product_name',
-        '$payment_receipt'
-    )";
-    
-    if ($conn->query($query) === TRUE) {
-        $insert_id = $conn->insert_id;
-        
-        // Get the inserted record
-        $select_query = "SELECT * FROM `{$table_name}` WHERE `id` = $insert_id";
-        $result = $conn->query($select_query);
-        $transaction = $result->fetch_assoc();
-        
-        // Verify against SMS data immediately
-        $verification = topupbay_verify_with_pp_transaction($transaction);
-        
-        if ($verification['verified'] === true) {
-            // Update status to verified FIRST
-            $update_query = "UPDATE `{$table_name}` SET `transaction_status` = 'verified' WHERE `id` = $insert_id";
-            $update_result = $conn->query($update_query);
-            
-            if ($update_result) {
-                $transaction['transaction_status'] = 'verified';
-                
-                // NOW mark SMS as used AFTER status is updated
-                if (isset($verification['sms_data']['id'])) {
-                    $sms_id = (int)$verification['sms_data']['id'];
-                    $update_sms_query = "UPDATE `{$db_prefix}sms_data` SET `status` = 'used' WHERE `id` = $sms_id AND `status` = 'approved'";
-                    $conn->query($update_sms_query);
-                }
-            } else {
-                $transaction['transaction_status'] = 'pending';
-            }
-        } else {
-            // If not verified, keep as pending
-            $transaction['transaction_status'] = 'pending';
-        }
-        
-        // Decode metadata for response
-        if (!empty($transaction['transaction_metadata']) && $transaction['transaction_metadata'] !== '--') {
-            $decoded = json_decode($transaction['transaction_metadata'], true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                $transaction['transaction_metadata'] = $decoded;
-            }
-        }
-        
-        $conn->close();
-        
-        http_response_code(201);
-        echo json_encode([
-            'status' => true,
-            'message' => 'Transaction created successfully',
-            'data' => $transaction
-        ]);
-    } else {
-        $conn->close();
-        http_response_code(500);
-        echo json_encode([
-            'status' => false,
-            'message' => 'Failed to create transaction. Please try again.'
-        ]);
-    }
-}
-
+topupbay_json_response(['status' => false, 'message' => 'Method not allowed'], 405);
