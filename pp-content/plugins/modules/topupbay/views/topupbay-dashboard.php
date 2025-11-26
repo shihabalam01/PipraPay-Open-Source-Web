@@ -14,7 +14,12 @@ $stats_query = "
         COUNT(*) AS total,
         SUM(CASE WHEN LOWER(transaction_status) = 'pending' THEN 1 ELSE 0 END) AS pending,
         SUM(CASE WHEN LOWER(transaction_status) = 'verified' THEN 1 ELSE 0 END) AS verified,
-        SUM(CASE WHEN LOWER(transaction_status) = 'canceled' OR LOWER(transaction_status) = 'failed' THEN 1 ELSE 0 END) AS canceled
+        SUM(CASE WHEN LOWER(transaction_status) IN ('canceled','failed') THEN 1 ELSE 0 END) AS canceled,
+        SUM(CASE
+            WHEN LOWER(transaction_status) = 'verified' AND transaction_amount REGEXP '^-?[0-9]+(\\.[0-9]+)?$'
+            THEN CAST(transaction_amount AS DECIMAL(18,2))
+            ELSE 0
+        END) AS verified_total
     FROM `{$table_name}`
 ";
 $stats_result = $conn->query($stats_query);
@@ -97,6 +102,17 @@ function format_status_badge($status) {
             <div class="card-body">
                 <h3 class="card-title h5 mb-1">Canceled</h3>
                 <p class="display-6 mb-0"><?= htmlspecialchars($stats['canceled'] ?? 0) ?></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm">
+            <div class="card-body">
+                <h3 class="card-title h5 mb-1">Verified Amount</h3>
+                <p class="display-6 mb-0">
+                    <?= htmlspecialchars(number_format($stats['verified_total'] ?? 0, 2)) ?>
+                </p>
+                <small class="text-muted">Sum of verified transaction_amount values</small>
             </div>
         </div>
     </div>
