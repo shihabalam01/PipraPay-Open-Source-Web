@@ -181,7 +181,8 @@ $total_pages = ceil($total_transactions / $per_page);
                                         <ul class="dropdown-menu" aria-labelledby="statusDropdown<?= $txn['id'] ?>" style="border-radius: 10px; min-width: 150px;">
                                             <li>
                                                 <a class="dropdown-item status-option" 
-                                                   href="#" 
+                                                   href="#"
+                                                   onclick="return handleTopupBayStatusClick(this)"
                                                    data-status="pending" 
                                                    data-transaction-id="<?= $txn['id'] ?>"
                                                    data-color="warning">
@@ -190,7 +191,8 @@ $total_pages = ceil($total_transactions / $per_page);
                                             </li>
                                             <li>
                                                 <a class="dropdown-item status-option" 
-                                                   href="#" 
+                                                   href="#"
+                                                   onclick="return handleTopupBayStatusClick(this)"
                                                    data-status="verified" 
                                                    data-transaction-id="<?= $txn['id'] ?>"
                                                    data-color="success">
@@ -199,7 +201,8 @@ $total_pages = ceil($total_transactions / $per_page);
                                             </li>
                                             <li>
                                                 <a class="dropdown-item status-option" 
-                                                   href="#" 
+                                                   href="#"
+                                                   onclick="return handleTopupBayStatusClick(this)"
                                                    data-status="canceled" 
                                                    data-transaction-id="<?= $txn['id'] ?>"
                                                    data-color="danger">
@@ -383,6 +386,26 @@ function updateTransactionStatus(transactionId, status) {
         }
     });
 })();
+
+function handleTopupBayStatusClick(element) {
+    if (!element) {
+        return false;
+    }
+
+    const transactionId = element.getAttribute('data-transaction-id');
+    const status = element.getAttribute('data-status');
+
+    const dropdownElement = element.closest('.dropdown')?.querySelector('[data-bs-toggle="dropdown"]');
+    if (dropdownElement) {
+        const dropdownInstance = bootstrap.Dropdown.getInstance(dropdownElement);
+        if (dropdownInstance) {
+            dropdownInstance.hide();
+        }
+    }
+
+    updateTransactionStatus(transactionId, status);
+    return false;
+}
 
 // Bulk selection functionality
 (function() {
