@@ -20,29 +20,6 @@ $total_pages = ceil($total_transactions / $per_page);
 ?>
 
 <!-- Bulk Action Bar (hidden by default) -->
-<div class="row justify-content-end mb-3 bulk-manage-tab" style="display: none">
-    <div class="col-lg">
-        <div class="d-sm-flex justify-content-lg-end align-items-sm-center">
-            <span class="d-block d-sm-inline-block fs-5 me-3 mb-2 mb-sm-0">
-                <span id="bulk-manage-tab-counter">0</span> Selected
-            </span>
-            <a class="btn btn-outline-danger btn-sm mb-2 mb-sm-0 me-2 btn-bulk-action-delete" href="javascript:void(0)" onclick="bulkAction('btn-bulk-action-delete', 'delete')">
-                <i class="bi-trash"></i> Delete
-            </a>
-            <a class="btn btn-success btn-sm mb-2 mb-sm-0 me-2 btn-bulk-action-verified" href="javascript:void(0)" onclick="bulkAction('btn-bulk-action-verified', 'verified')">
-                <i class="bi-check-circle"></i> Verified
-            </a>
-            <a class="btn btn-warning btn-sm mb-2 mb-sm-0 me-2 btn-bulk-action-pending" href="javascript:void(0)" onclick="bulkAction('btn-bulk-action-pending', 'pending')">
-                <i class="bi-clock"></i> Pending
-            </a>
-            <a class="btn btn-danger btn-sm mb-2 mb-sm-0 me-2 btn-bulk-action-canceled" href="javascript:void(0)" onclick="bulkAction('btn-bulk-action-canceled', 'canceled')">
-                <i class="bi-x-circle"></i> Canceled
-            </a>
-        </div>
-        <span class="response-bulk-action"></span>
-    </div>
-</div>
-
 <!-- Transactions Table Card -->
 <div class="card">
     <div class="card-header">
@@ -81,6 +58,30 @@ $total_pages = ceil($total_transactions / $per_page);
                         </form>
                     </div>
                 </div>
+            </div>
+        </div>
+        <div class="row g-2 mt-3 align-items-center permission-strip bulk-manage-tab" style="display: none;">
+            <div class="col">
+                <span class="fw-semibold"><span id="bulk-manage-tab-counter">0</span> Selected</span>
+            </div>
+            <div class="col-auto">
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="btn btn-outline-danger btn-sm btn-bulk-action-delete" onclick="bulkAction('btn-bulk-action-delete', 'delete')">
+                        <i class="bi-trash"></i> Delete
+                    </button>
+                    <button class="btn btn-success btn-sm btn-bulk-action-verified" onclick="bulkAction('btn-bulk-action-verified', 'verified')">
+                        <i class="bi-check-circle"></i> Verified
+                    </button>
+                    <button class="btn btn-warning btn-sm btn-bulk-action-pending" onclick="bulkAction('btn-bulk-action-pending', 'pending')">
+                        <i class="bi-clock"></i> Pending
+                    </button>
+                    <button class="btn btn-danger btn-sm btn-bulk-action-canceled" onclick="bulkAction('btn-bulk-action-canceled', 'canceled')">
+                        <i class="bi-x-circle"></i> Canceled
+                    </button>
+                </div>
+            </div>
+            <div class="col-12">
+                <span class="response-bulk-action"></span>
             </div>
         </div>
     </div>
