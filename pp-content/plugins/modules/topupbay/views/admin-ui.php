@@ -148,8 +148,8 @@ $api_base_url = $site_url . '/tb-api';
                     
                     <div class="mb-3">
                         <label class="form-label fw-medium">Request (cURL)</label>
-                        <div class="position-relative">
-                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0;"><code class="text-light">curl -X GET "<?= htmlspecialchars($api_base_url) ?>/all-transaction" \
+                    <div class="position-relative">
+                        <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0;"><code class="text-light">curl -X GET "<?= htmlspecialchars($api_base_url) ?>/all-transaction" \
   -H "mh-topupbay-api-key: <?= htmlspecialchars($api_key ?: 'YOUR_API_KEY') ?>"</code></pre>
                             <button class="btn btn-sm btn-white position-absolute" style="top: 0.5rem; right: 0.5rem;" onclick="copyCodeToClipboard(this)">
                                 <i class="bi-clipboard"></i>
@@ -160,13 +160,13 @@ $api_base_url = $site_url . '/tb-api';
                     <div>
                         <label class="form-label fw-medium">Response (JSON)</label>
                         <div class="position-relative">
-                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0; max-height: 400px; overflow-y: auto;"><code class="text-light">{
+                        <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0;"><code class="text-light">{
   "status": true,
   "count": 2,
   "data": [
     {
       "id": 1,
-      "payment_id": "12345",
+      "payment_id": "TB-100",
       "customer": "John Doe",
       "payment_method": "bKash",
       "transaction_amount": "100.00",
@@ -175,14 +175,14 @@ $api_base_url = $site_url . '/tb-api';
       "transaction_id": "TXN123456",
       "transaction_status": "verified",
       "transaction_webhook": "--",
-      "transaction_metadata": "{}",
+      "transaction_metadata": "{\"order_id\":\"ORD-001\",\"user_id\":\"123\"}",
       "product_name": "Product Name",
       "payment_receipt": "--",
       "created_at": "2024-01-15 10:30:00"
     },
     {
       "id": 2,
-      "payment_id": "12346",
+      "payment_id": "TB-101",
       "customer": "Jane Smith",
       "payment_method": "Nagad",
       "transaction_amount": "250.00",
@@ -191,7 +191,7 @@ $api_base_url = $site_url . '/tb-api';
       "transaction_id": "TXN789012",
       "transaction_status": "pending",
       "transaction_webhook": "--",
-      "transaction_metadata": "{}",
+      "transaction_metadata": "{\"order_id\":\"ORD-002\"}",
       "product_name": "--",
       "payment_receipt": "--",
       "created_at": "2024-01-15 11:00:00"
@@ -216,7 +216,7 @@ $api_base_url = $site_url . '/tb-api';
                     <div class="mb-3">
                         <label class="form-label fw-medium">Request (cURL - JSON)</label>
                         <div class="position-relative">
-                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0; max-height: 400px; overflow-y: auto;"><code class="text-light">curl -X POST "<?= htmlspecialchars($api_base_url) ?>/create-transaction" \
+                        <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0;"><code class="text-light">curl -X POST "<?= htmlspecialchars($api_base_url) ?>/create-transaction" \
   -H "Content-Type: application/json" \
   -H "mh-topupbay-api-key: <?= htmlspecialchars($api_key ?: 'YOUR_API_KEY') ?>" \
   -d '{
@@ -244,7 +244,7 @@ $api_base_url = $site_url . '/tb-api';
                     <div class="mb-3">
                         <label class="form-label fw-medium">Request (cURL - Multipart Form Data with Image Upload)</label>
                         <div class="position-relative">
-                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0; max-height: 400px; overflow-y: auto;"><code class="text-light">curl -X POST "<?= htmlspecialchars($api_base_url) ?>/create-transaction" \
+                        <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0;"><code class="text-light">curl -X POST "<?= htmlspecialchars($api_base_url) ?>/create-transaction" \
   -H "mh-topupbay-api-key: <?= htmlspecialchars($api_key ?: 'YOUR_API_KEY') ?>" \
   -F "customer=John Doe" \
   -F "payment_method=bKash" \
@@ -264,7 +264,7 @@ $api_base_url = $site_url . '/tb-api';
                     <div>
                         <label class="form-label fw-medium">Response (JSON)</label>
                         <div class="position-relative">
-                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0; max-height: 400px; overflow-y: auto;"><code class="text-light">{
+                        <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0;"><code class="text-light">{
   "status": true,
   "message": "Transaction created successfully",
   "data": {
