@@ -268,20 +268,14 @@ $api_base_url = $site_url . '/tb-api';
   "status": true,
   "message": "Transaction created successfully",
   "data": {
-    "id": 1,
     "payment_id": "12345",
     "customer": "John Doe",
     "payment_method": "bKash",
     "transaction_amount": "100.00",
     "transaction_currency": "BDT",
     "payment_sender_number": "01712345678",
-    "transaction_id": "TXN123456",
-    "transaction_status": "pending",
-    "transaction_webhook": "--",
-    "transaction_metadata": "{\"order_id\":\"ORD-001\",\"user_id\":\"123\"}",
-    "product_name": "Product Name",
-    "payment_receipt": "https://<?= $_SERVER['HTTP_HOST'] ?? 'example.com' ?>/pp-external/media/abc123xyz.jpg",
-    "created_at": "2024-01-15 10:30:00"
+    "transaction_id": "TXN008123456",
+    "transaction_status": "pending"
   }
 }</code></pre>
                             <button class="btn btn-sm btn-white position-absolute" style="top: 0.5rem; right: 0.5rem;" onclick="copyCodeToClipboard(this)">
@@ -294,7 +288,7 @@ $api_base_url = $site_url . '/tb-api';
                         <small>
                             <strong>Required Fields:</strong> transaction_amount, transaction_currency, transaction_status<br>
                             <strong>Optional Fields:</strong> payment_id, customer, payment_method, payment_sender_number, transaction_id, product_name, payment_receipt (file upload or URL), transaction_metadata<br>
-                            <strong>Note:</strong> payment_receipt can be uploaded as an image file (multipart/form-data) or provided as a URL string (JSON)
+                            <strong>Note:</strong> payment_receipt can be uploaded as an image file (multipart/form-data) or provided as a URL string (JSON). The POST response only includes the fields shown above (no webhook/metadata fields), even though they are stored in the database.
                         </small>
                     </div>
                 </div>
