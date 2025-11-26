@@ -23,7 +23,7 @@ $stats_query = "
     FROM `{$table_name}`
 ";
 $stats_result = $conn->query($stats_query);
-$stats = $stats_result ? $stats_result->fetch_assoc() : ['total' => 0, 'pending' => 0, 'verified' => 0, 'canceled' => 0];
+$stats = $stats_result ? $stats_result->fetch_assoc() : ['total' => 0, 'pending' => 0, 'verified' => 0, 'canceled' => 0, 'verified_total' => 0];
 
 $recent_query = "
     SELECT *
@@ -62,7 +62,6 @@ function format_status_badge($status) {
     <div class="row align-items-end">
         <div class="col-sm mb-2 mb-sm-0">
             <h1 class="page-header-title">TopupBay Dashboard</h1>
-            <p class="text-muted">Overview of TopupBay transactions and quick access to recent activity.</p>
         </div>
         <div class="col-auto">
             <button class="btn btn-outline-primary btn-sm" onclick="load_content('TopupBay Transactions','plugin-loader?page=modules--topupbay&view=transactions','nav-btn-topupbay-transaction')">
@@ -73,6 +72,16 @@ function format_status_badge($status) {
 </div>
 
 <div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-sm">
+            <div class="card-body">
+                <h3 class="card-title h5 mb-1">Verified Amount</h3>
+                <p class="display-6 mb-0 text-success">
+                    <?= htmlspecialchars(number_format($stats['verified_total'] ?? 0, 2)) ?>
+                </p>
+            </div>
+        </div>
+    </div>
     <div class="col-sm-6 col-lg-3">
         <div class="card card-sm">
             <div class="card-body">
@@ -105,18 +114,7 @@ function format_status_badge($status) {
             </div>
         </div>
     </div>
-    <div class="col-sm-6 col-lg-3">
-        <div class="card card-sm">
-            <div class="card-body">
-                <h3 class="card-title h5 mb-1">Verified Amount</h3>
-                <p class="display-6 mb-0">
-                    <?= htmlspecialchars(number_format($stats['verified_total'] ?? 0, 2)) ?>
-                </p>
-                <small class="text-muted">Sum of verified transaction_amount values</small>
-            </div>
-        </div>
-    </div>
-</div>
+</div></div>
 
 <div class="card">
     <div class="card-header">
