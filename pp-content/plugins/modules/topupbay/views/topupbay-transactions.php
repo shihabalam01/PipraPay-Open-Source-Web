@@ -115,8 +115,8 @@ $total_pages = ceil($total_transactions / $per_page);
                             $view_url = 'plugin-loader?page=modules--topupbay&view=view-transaction&ref=' . $txn['id'];
                         ?>
                             <tr>
-                                <td onclick="event.stopPropagation();">
-                                    <input type="checkbox" class="form-check-input select-box-tb" value="<?= $txn['id'] ?>" onclick="event.stopPropagation();">
+                                <td onclick="handleBulkRowClick(this)">
+                                    <input type="checkbox" class="form-check-input select-box-tb" value="<?= $txn['id'] ?>" onclick="handleBulkCheckboxClick(event)">
                                 </td>
                                 <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
                                     <?php if (!empty($txn['payment_id']) && $txn['payment_id'] !== '--'): ?>
@@ -408,8 +408,34 @@ function handleTopupBayStatusClick(element) {
 }
 
 // Bulk selection functionality
+function handleBulkCheckboxClick(event) {
+    event.stopPropagation();
+}
+
+function handleBulkRowClick(element) {
+    if (!element) {
+        return;
+    }
+
+    const checkbox = element.querySelector('.select-box-tb');
+    if (!checkbox) {
+        return;
+    }
+
+    checkbox.checked = !checkbox.checked;
+    updateBulkActionBar();
+    
+    const selectAll = document.getElementById('select-all-tb');
+    if (selectAll) {
+        const allChecked = document.querySelectorAll('.select-box-tb:checked').length;
+        const total = document.querySelectorAll('.select-box-tb').length;
+        selectAll.checked = allChecked === total && total > 0;
+        selectAll.indeterminate = allChecked > 0 && allChecked < total;
+    }
+}
+
+// Add event listeners for bulk selection
 (function() {
-    // Select all checkbox
     const selectAllCheckbox = document.getElementById('select-all-tb');
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('click', function() {
@@ -418,13 +444,11 @@ function handleTopupBayStatusClick(element) {
             updateBulkActionBar();
         });
     }
-    
-    // Individual checkbox clicks (event delegation for dynamic content)
+
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('select-box-tb')) {
             updateBulkActionBar();
-            
-            // Update select-all state
+
             const selectAll = document.getElementById('select-all-tb');
             if (selectAll) {
                 const allChecked = document.querySelectorAll('.select-box-tb:checked').length;
@@ -434,12 +458,12 @@ function handleTopupBayStatusClick(element) {
             }
         }
     });
-    
+
     function updateBulkActionBar() {
         const selectedCount = document.querySelectorAll('.select-box-tb:checked').length;
         const counter = document.getElementById('bulk-manage-tab-counter');
         const actionBar = document.querySelector('.bulk-manage-tab');
-        
+
         if (counter) counter.textContent = selectedCount;
         if (actionBar) {
             actionBar.style.display = selectedCount > 0 ? 'flex' : 'none';
