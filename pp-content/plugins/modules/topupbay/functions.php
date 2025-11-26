@@ -818,10 +818,14 @@ function topupbay_insert_transaction_api() {
     
     if (empty($data)) {
         http_response_code(400);
-        echo json_encode(['status' => false, 'message' => 'Invalid request data']);
+        echo json_encode([
+            'status' => false,
+            'type' => 'Missing_Data',
+            'message' => 'Invalid request data'
+        ]);
         exit();
     }
-    
+
     $required_fields = ['payment_id', 'customer', 'payment_method', 'payment_sender_number', 'transaction_id'];
     $missing_fields = [];
     
@@ -835,6 +839,7 @@ function topupbay_insert_transaction_api() {
         http_response_code(400);
         echo json_encode([
             'status' => false,
+            'type' => 'Missing_Data',
             'message' => 'Missing required fields: ' . implode(', ', $missing_fields)
         ]);
         exit();
@@ -880,11 +885,12 @@ function topupbay_insert_transaction_api() {
         $check_result = topupbay_check_transaction_exists($transaction_id);
         if ($check_result['exists'] === true) {
             $conn->close();
-            http_response_code(400);
-            echo json_encode([
-                'status' => false,
-                'message' => 'Transaction ID already exists. Duplicate transaction IDs are not allowed.'
-            ]);
+        http_response_code(400);
+        echo json_encode([
+            'status' => false,
+            'type' => 'Wrong_transaction_ID',
+            'message' => 'Transaction ID already exists. Duplicate transaction IDs are not allowed.'
+        ]);
             exit();
         }
     }
@@ -961,9 +967,12 @@ function topupbay_insert_transaction_api() {
             'transaction_status' => $transaction['transaction_status']
         ];
         
+        $response_type = $transaction['transaction_status'] === 'verified' ? 'Success' : ucfirst($transaction['transaction_status'] ?? 'Pending');
+
         http_response_code(201);
         echo json_encode([
             'status' => true,
+            'type' => $response_type,
             'message' => 'Transaction created successfully',
             'data' => $response_data
         ]);
@@ -972,6 +981,7 @@ function topupbay_insert_transaction_api() {
         http_response_code(500);
         echo json_encode([
             'status' => false,
+            'type' => 'Server_Error',
             'message' => 'Failed to create transaction. Please try again.'
         ]);
     }

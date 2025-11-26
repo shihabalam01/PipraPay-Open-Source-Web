@@ -266,6 +266,7 @@ $api_base_url = $site_url . '/tb-api';
                         <div class="position-relative">
                         <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0;"><code class="text-light">{
   "status": true,
+  "type": "Pending",
   "message": "Transaction created successfully",
   "data": {
     "payment_id": "12345",
@@ -288,7 +289,7 @@ $api_base_url = $site_url . '/tb-api';
                         <small>
                             <strong>Required Fields:</strong> payment_id, customer, payment_method, payment_sender_number, transaction_id<br>
                             <strong>Optional Fields:</strong> transaction_amount, transaction_currency, transaction_status, product_name, payment_receipt (file upload or URL), transaction_metadata<br>
-                            <strong>Note:</strong> payment_receipt can be uploaded as an image file (multipart/form-data) or provided as a URL string (JSON). The POST response only includes the fields shown above (no webhook/metadata fields), even though those columns are still stored in the database.
+                            <strong>Note:</strong> payment_receipt can be uploaded as an image file (multipart/form-data) or provided as a URL string (JSON). The POST response only includes the fields shown above (no webhook/metadata fields), even though those columns are still stored in the database. Responses now include a <code>type</code> field that returns <code>Success</code>, <code>Pending</code>, <code>Missing_Data</code>, <code>Wrong_transaction_ID</code>, or <code>Server_Error</code> so your client can easily distinguish each outcome.
                         </small>
                     </div>
                 </div>
