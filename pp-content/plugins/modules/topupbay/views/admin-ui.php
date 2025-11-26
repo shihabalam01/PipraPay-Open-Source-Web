@@ -132,6 +132,177 @@ $api_base_url = $site_url . '/tb-api';
     </div>
 </div>
 
+<!-- API Examples Card -->
+<div class="row mt-4">
+    <div class="col-lg-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title h4">API Request & Response Examples</h2>
+            </div>
+            <div class="card-body">
+                <!-- GET Request Example -->
+                <div class="mb-4">
+                    <h5 class="mb-3">
+                        <i class="bi-arrow-right-circle text-primary"></i> GET - Fetch All Transactions
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Request (cURL)</label>
+                        <div class="position-relative">
+                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0;"><code class="text-light">curl -X GET "<?= htmlspecialchars($api_base_url) ?>/all-transaction" \
+  -H "mh-topupbay-api-key: <?= htmlspecialchars($api_key ?: 'YOUR_API_KEY') ?>"</code></pre>
+                            <button class="btn btn-sm btn-white position-absolute" style="top: 0.5rem; right: 0.5rem;" onclick="copyCodeToClipboard(this)">
+                                <i class="bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="form-label fw-medium">Response (JSON)</label>
+                        <div class="position-relative">
+                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0; max-height: 400px; overflow-y: auto;"><code class="text-light">{
+  "status": true,
+  "count": 2,
+  "data": [
+    {
+      "id": 1,
+      "payment_id": "12345",
+      "customer": "John Doe",
+      "payment_method": "bKash",
+      "transaction_amount": "100.00",
+      "transaction_currency": "BDT",
+      "payment_sender_number": "01712345678",
+      "transaction_id": "TXN123456",
+      "transaction_status": "verified",
+      "transaction_webhook": "--",
+      "transaction_metadata": "{}",
+      "product_name": "Product Name",
+      "payment_receipt": "--",
+      "created_at": "2024-01-15 10:30:00"
+    },
+    {
+      "id": 2,
+      "payment_id": "12346",
+      "customer": "Jane Smith",
+      "payment_method": "Nagad",
+      "transaction_amount": "250.00",
+      "transaction_currency": "BDT",
+      "payment_sender_number": "01787654321",
+      "transaction_id": "TXN789012",
+      "transaction_status": "pending",
+      "transaction_webhook": "--",
+      "transaction_metadata": "{}",
+      "product_name": "--",
+      "payment_receipt": "--",
+      "created_at": "2024-01-15 11:00:00"
+    }
+  ]
+}</code></pre>
+                            <button class="btn btn-sm btn-white position-absolute" style="top: 0.5rem; right: 0.5rem;" onclick="copyCodeToClipboard(this)">
+                                <i class="bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <!-- POST Request Example -->
+                <div>
+                    <h5 class="mb-3">
+                        <i class="bi-arrow-right-circle text-primary"></i> POST - Create Transaction
+                    </h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Request (cURL - JSON)</label>
+                        <div class="position-relative">
+                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0; max-height: 400px; overflow-y: auto;"><code class="text-light">curl -X POST "<?= htmlspecialchars($api_base_url) ?>/create-transaction" \
+  -H "Content-Type: application/json" \
+  -H "mh-topupbay-api-key: <?= htmlspecialchars($api_key ?: 'YOUR_API_KEY') ?>" \
+  -d '{
+    "payment_id": "12345",
+    "customer": "John Doe",
+    "payment_method": "bKash",
+    "transaction_amount": "100.00",
+    "transaction_currency": "BDT",
+    "payment_sender_number": "01712345678",
+    "transaction_id": "TXN123456",
+    "transaction_status": "pending",
+    "product_name": "Product Name",
+    "payment_receipt": "https://example.com/receipt.jpg",
+    "transaction_metadata": {
+      "order_id": "ORD-001",
+      "user_id": "123"
+    }
+  }'</code></pre>
+                            <button class="btn btn-sm btn-white position-absolute" style="top: 0.5rem; right: 0.5rem;" onclick="copyCodeToClipboard(this)">
+                                <i class="bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-medium">Request (cURL - Multipart Form Data with Image Upload)</label>
+                        <div class="position-relative">
+                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0; max-height: 400px; overflow-y: auto;"><code class="text-light">curl -X POST "<?= htmlspecialchars($api_base_url) ?>/create-transaction" \
+  -H "mh-topupbay-api-key: <?= htmlspecialchars($api_key ?: 'YOUR_API_KEY') ?>" \
+  -F "customer=John Doe" \
+  -F "payment_method=bKash" \
+  -F "transaction_amount=100.00" \
+  -F "transaction_currency=BDT" \
+  -F "payment_sender_number=01712345678" \
+  -F "transaction_id=TXN123456" \
+  -F "transaction_status=pending" \
+  -F "product_name=Product Name" \
+  -F "payment_receipt=@/path/to/receipt.jpg"</code></pre>
+                            <button class="btn btn-sm btn-white position-absolute" style="top: 0.5rem; right: 0.5rem;" onclick="copyCodeToClipboard(this)">
+                                <i class="bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="form-label fw-medium">Response (JSON)</label>
+                        <div class="position-relative">
+                            <pre class="bg-dark text-light p-3 rounded" style="overflow-x: auto; margin: 0; max-height: 400px; overflow-y: auto;"><code class="text-light">{
+  "status": true,
+  "message": "Transaction created successfully",
+  "data": {
+    "id": 1,
+    "payment_id": "12345",
+    "customer": "John Doe",
+    "payment_method": "bKash",
+    "transaction_amount": "100.00",
+    "transaction_currency": "BDT",
+    "payment_sender_number": "01712345678",
+    "transaction_id": "TXN123456",
+    "transaction_status": "pending",
+    "transaction_webhook": "--",
+    "transaction_metadata": "{\"order_id\":\"ORD-001\",\"user_id\":\"123\"}",
+    "product_name": "Product Name",
+    "payment_receipt": "https://<?= $_SERVER['HTTP_HOST'] ?? 'example.com' ?>/pp-external/media/abc123xyz.jpg",
+    "created_at": "2024-01-15 10:30:00"
+  }
+}</code></pre>
+                            <button class="btn btn-sm btn-white position-absolute" style="top: 0.5rem; right: 0.5rem;" onclick="copyCodeToClipboard(this)">
+                                <i class="bi-clipboard"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3 mb-0">
+                        <small>
+                            <strong>Required Fields:</strong> transaction_amount, transaction_currency, transaction_status<br>
+                            <strong>Optional Fields:</strong> payment_id, customer, payment_method, payment_sender_number, transaction_id, product_name, payment_receipt (file upload or URL), transaction_metadata<br>
+                            <strong>Note:</strong> payment_receipt can be uploaded as an image file (multipart/form-data) or provided as a URL string (JSON)
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 // Copy to clipboard function (PipraPay style)
 function copyToClipboard(inputId) {
@@ -228,6 +399,28 @@ function updateApiEndpoints(apiKey) {
     document.getElementById('apiBaseUrl').value = baseUrl;
     document.getElementById('getEndpoint').value = 'GET ' + baseUrl + '/all-transaction';
     document.getElementById('postEndpoint').value = 'POST ' + baseUrl + '/create-transaction';
+}
+
+// Copy code block to clipboard
+function copyCodeToClipboard(button) {
+    const pre = button.parentElement.querySelector('pre code');
+    const text = pre.textContent || pre.innerText;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        const originalHTML = button.innerHTML;
+        button.innerHTML = '<i class="bi-check"></i>';
+        button.classList.add('btn-success');
+        button.classList.remove('btn-white');
+        
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.classList.remove('btn-success');
+            button.classList.add('btn-white');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy to clipboard');
+    });
 }
 </script>
 

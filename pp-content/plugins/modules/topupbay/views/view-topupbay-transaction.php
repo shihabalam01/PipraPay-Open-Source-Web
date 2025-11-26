@@ -26,16 +26,6 @@ if (!$result || $result->num_rows === 0) {
 $transaction = $result->fetch_assoc();
 $conn->close();
 
-// Decode metadata if it's JSON
-if (!empty($transaction['transaction_metadata']) && $transaction['transaction_metadata'] !== '--') {
-    $decoded = json_decode($transaction['transaction_metadata'], true);
-    if (json_last_error() === JSON_ERROR_NONE) {
-        $transaction['transaction_metadata'] = $decoded;
-    }
-}
-
-// Get verification info
-$verification = topupbay_verify_with_pp_transaction($transaction);
 ?>
 
 <!-- Page Header -->
@@ -190,13 +180,17 @@ $verification = topupbay_verify_with_pp_transaction($transaction);
                                             </div>
                                         <?php endif; ?>
                                         
-                                        <?php if (!empty($transaction['transaction_webhook']) && $transaction['transaction_webhook'] !== '--'): ?>
+                                        <?php if (!empty($transaction['transaction_amount']) && $transaction['transaction_amount'] !== '--'): ?>
                                             <div class="col-sm-4 mb-3">
-                                                <label class="form-label fw-medium text-dark">Webhook URL</label>
+                                                <label class="form-label fw-medium text-dark">Amount</label>
                                                 <div class="fw-bold text-dark">
-                                                    <a href="<?= htmlspecialchars($transaction['transaction_webhook']) ?>" target="_blank" class="text-primary">
-                                                        <?= htmlspecialchars($transaction['transaction_webhook']) ?>
-                                                    </a>
+                                                    <?php
+                                                    $amount = $transaction['transaction_amount'];
+                                                    $currency = !empty($transaction['transaction_currency']) && $transaction['transaction_currency'] !== '--' 
+                                                        ? $transaction['transaction_currency'] 
+                                                        : '';
+                                                    echo htmlspecialchars($currency . ' ' . number_format((float)$amount, 2));
+                                                    ?>
                                                 </div>
                                             </div>
                                         <?php endif; ?>
@@ -237,81 +231,6 @@ $verification = topupbay_verify_with_pp_transaction($transaction);
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="card mt-3">
-                                <div class="card-header">
-                                    <h2 class="card-title h4">Financial Details</h2>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <?php if (!empty($transaction['transaction_amount']) && $transaction['transaction_amount'] !== '--'): ?>
-                                            <div class="col-sm-4 mb-3">
-                                                <label class="form-label fw-medium text-dark">Amount</label>
-                                                <div class="fw-bold text-dark">
-                                                    <?php
-                                                    $amount = $transaction['transaction_amount'];
-                                                    $currency = !empty($transaction['transaction_currency']) && $transaction['transaction_currency'] !== '--' 
-                                                        ? $transaction['transaction_currency'] 
-                                                        : '';
-                                                    echo htmlspecialchars($currency . ' ' . number_format((float)$amount, 2));
-                                                    ?>
-                                                </div>
-                                            </div>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Verification Info -->
-                            <?php if (isset($verification) && is_array($verification)): ?>
-                                <div class="card mt-3">
-                                    <div class="card-header">
-                                        <h2 class="card-title h4">PipraPay Verification</h2>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-sm-12 mb-3">
-                                                <?php if ($verification['verified']): ?>
-                                                    <div class="alert alert-success">
-                                                        <i class="bi-check-circle"></i> This transaction has been verified with PipraPay transaction #<?= htmlspecialchars($verification['pp_id'] ?? 'N/A') ?>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <div class="alert alert-info">
-                                                        <i class="bi-info-circle"></i> <?= htmlspecialchars($verification['message'] ?? 'Not verified with PipraPay transaction') ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                            
-                            <!-- Metadata -->
-                            <?php if (!empty($transaction['transaction_metadata']) && $transaction['transaction_metadata'] !== '--' && is_array($transaction['transaction_metadata'])): ?>
-                                <div class="card mt-3">
-                                    <div class="card-header">
-                                        <h2 class="card-title h4">Metadata</h2>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <?php foreach ($transaction['transaction_metadata'] as $key => $value): ?>
-                                                <div class="col-sm-6 mb-3">
-                                                    <label class="form-label fw-medium text-dark"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $key))) ?></label>
-                                                    <div class="fw-bold text-dark">
-                                                        <?php
-                                                        if (is_array($value)) {
-                                                            echo htmlspecialchars(json_encode($value, JSON_PRETTY_PRINT));
-                                                        } else {
-                                                            echo htmlspecialchars($value);
-                                                        }
-                                                        ?>
-                                                    </div>
-                                                </div>
-                                            <?php endforeach; ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
                         </div>
                         
                         <!-- Customer Tab -->
