@@ -424,14 +424,28 @@ function handleBulkRowClick(element) {
     }
 
     checkbox.checked = !checkbox.checked;
+    synchronizeSelectAll();
     updateBulkActionBar();
-    
+}
+
+function synchronizeSelectAll() {
     const selectAll = document.getElementById('select-all-tb');
     if (selectAll) {
         const allChecked = document.querySelectorAll('.select-box-tb:checked').length;
         const total = document.querySelectorAll('.select-box-tb').length;
         selectAll.checked = allChecked === total && total > 0;
         selectAll.indeterminate = allChecked > 0 && allChecked < total;
+    }
+}
+
+function updateBulkActionBar() {
+    const selectedCount = document.querySelectorAll('.select-box-tb:checked').length;
+    const counter = document.getElementById('bulk-manage-tab-counter');
+    const actionBar = document.querySelector('.bulk-manage-tab');
+
+    if (counter) counter.textContent = selectedCount;
+    if (actionBar) {
+        actionBar.style.display = selectedCount > 0 ? 'flex' : 'none';
     }
 }
 
@@ -449,27 +463,9 @@ function handleBulkRowClick(element) {
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('select-box-tb')) {
             updateBulkActionBar();
-
-            const selectAll = document.getElementById('select-all-tb');
-            if (selectAll) {
-                const allChecked = document.querySelectorAll('.select-box-tb:checked').length;
-                const total = document.querySelectorAll('.select-box-tb').length;
-                selectAll.checked = allChecked === total && total > 0;
-                selectAll.indeterminate = allChecked > 0 && allChecked < total;
-            }
+            synchronizeSelectAll();
         }
     });
-
-    function updateBulkActionBar() {
-        const selectedCount = document.querySelectorAll('.select-box-tb:checked').length;
-        const counter = document.getElementById('bulk-manage-tab-counter');
-        const actionBar = document.querySelector('.bulk-manage-tab');
-
-        if (counter) counter.textContent = selectedCount;
-        if (actionBar) {
-            actionBar.style.display = selectedCount > 0 ? 'flex' : 'none';
-        }
-    }
 })();
 
 // Handle search input with debounce, but immediate trigger on clear
