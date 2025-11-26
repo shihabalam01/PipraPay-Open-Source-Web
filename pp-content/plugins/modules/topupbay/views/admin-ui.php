@@ -286,9 +286,9 @@ $api_base_url = $site_url . '/tb-api';
                     
                     <div class="alert alert-info mt-3 mb-0">
                         <small>
-                            <strong>Required Fields:</strong> transaction_amount, transaction_currency, transaction_status<br>
-                            <strong>Optional Fields:</strong> payment_id, customer, payment_method, payment_sender_number, transaction_id, product_name, payment_receipt (file upload or URL), transaction_metadata<br>
-                            <strong>Note:</strong> payment_receipt can be uploaded as an image file (multipart/form-data) or provided as a URL string (JSON). The POST response only includes the fields shown above (no webhook/metadata fields), even though they are stored in the database.
+                            <strong>Required Fields:</strong> payment_id, customer, payment_method, payment_sender_number, transaction_id<br>
+                            <strong>Optional Fields:</strong> transaction_amount, transaction_currency, transaction_status, product_name, payment_receipt (file upload or URL), transaction_metadata<br>
+                            <strong>Note:</strong> payment_receipt can be uploaded as an image file (multipart/form-data) or provided as a URL string (JSON). The POST response only includes the fields shown above (no webhook/metadata fields), even though those columns are still stored in the database.
                         </small>
                     </div>
                 </div>

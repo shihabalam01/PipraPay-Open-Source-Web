@@ -822,7 +822,7 @@ function topupbay_insert_transaction_api() {
         exit();
     }
     
-    $required_fields = ['transaction_amount', 'transaction_currency', 'transaction_status'];
+    $required_fields = ['payment_id', 'customer', 'payment_method', 'payment_sender_number', 'transaction_id'];
     $missing_fields = [];
     
     foreach ($required_fields as $field) {
