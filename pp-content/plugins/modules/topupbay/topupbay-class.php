@@ -31,7 +31,9 @@ function topupbay_admin_page() {
     // Check if view parameter is set (for transactions page)
     $view = $_GET['view'] ?? '';
     
-    if ($view === 'transactions') {
+    if ($view === 'dashboard') {
+        $viewFile = __DIR__ . '/views/topupbay-dashboard.php';
+    } elseif ($view === 'transactions') {
         $viewFile = __DIR__ . '/views/topupbay-transactions.php';
     } elseif ($view === 'view-transaction') {
         $viewFile = __DIR__ . '/views/view-topupbay-transaction.php';

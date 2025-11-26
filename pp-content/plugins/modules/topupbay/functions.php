@@ -326,38 +326,39 @@ function topupbay_inject_menu_item() {
     <script>
     (function() {
         function injectTopupBayMenu() {
-            // Find the Transaction menu item
             const transactionMenu = document.querySelector(".nav-btn-transaction");
-            if (!transactionMenu || !transactionMenu.closest(".nav-item")) {
-                // Retry after a short delay if menu not loaded yet
+            const dashboardMenu = document.querySelector(".nav-btn-dashboard");
+
+            if (!transactionMenu || !transactionMenu.closest(".nav-item") || !dashboardMenu || !dashboardMenu.closest(".nav-item")) {
                 setTimeout(injectTopupBayMenu, 100);
                 return;
             }
-            
+
             const transactionNavItem = transactionMenu.closest(".nav-item");
-            
-            // Hide the default Transaction menu item
+            const dashboardNavItem = dashboardMenu.closest(".nav-item");
+
+            // Hide the default menu items
             transactionNavItem.style.display = 'none';
-            
-            // Check if already injected
-            if (document.querySelector(".nav-btn-topupbay-transaction")) {
-                return;
+            dashboardNavItem.style.display = 'none';
+
+            if (!document.querySelector(".nav-btn-topupbay-dashboard")) {
+                const topupbayDashboard = document.createElement("div");
+                topupbayDashboard.className = "nav-item";
+                topupbayDashboard.innerHTML = '<a class="nav-link nav-btn-topupbay-dashboard" href="javascript:void(0);" onclick="load_content(\'TopupBay Dashboard\',\'plugin-loader?page=modules--topupbay&view=dashboard\',\'nav-btn-topupbay-dashboard\')"><i class="bi bi-speedometer2 nav-icon"></i><span class="nav-link-title">TopupBay Dashboard</span></a>';
+                dashboardNavItem.parentNode.insertBefore(topupbayDashboard, dashboardNavItem);
             }
-            
-            // Create TopupBay Transaction menu item
-            const topupbayNavItem = document.createElement("div");
-            topupbayNavItem.className = "nav-item";
-            topupbayNavItem.innerHTML = '<a class="nav-link nav-btn-topupbay-transaction" href="javascript:void(0);" onclick="load_content(\'TopupBay Transaction\',\'plugin-loader?page=modules--topupbay&view=transactions\',\'nav-btn-topupbay-transaction\')"><i class="bi bi-wallet nav-icon"></i><span class="nav-link-title">TopupBay Transaction</span></a>';
-            
-            // Insert before Transaction menu item (which is now hidden)
-            transactionNavItem.parentNode.insertBefore(topupbayNavItem, transactionNavItem);
+
+            if (!document.querySelector(".nav-btn-topupbay-transaction")) {
+                const topupbayNavItem = document.createElement("div");
+                topupbayNavItem.className = "nav-item";
+                topupbayNavItem.innerHTML = '<a class="nav-link nav-btn-topupbay-transaction" href="javascript:void(0);" onclick="load_content(\'TopupBay Transaction\',\'plugin-loader?page=modules--topupbay&view=transactions\',\'nav-btn-topupbay-transaction\')"><i class="bi bi-wallet nav-icon"></i><span class="nav-link-title">TopupBay Transaction</span></a>';
+                transactionNavItem.parentNode.insertBefore(topupbayNavItem, transactionNavItem);
+            }
         }
-        
-        // Wait for DOM to be ready
+
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", injectTopupBayMenu);
         } else {
-            // DOM already loaded, try immediately
             injectTopupBayMenu();
         }
     })();
