@@ -115,8 +115,8 @@ $total_pages = ceil($total_transactions / $per_page);
                             $view_url = 'plugin-loader?page=modules--topupbay&view=view-transaction&ref=' . $txn['id'];
                         ?>
                             <tr>
-                                <td onclick="handleBulkCheckboxRowClick(event)">
-                                    <input type="checkbox" class="form-check-input select-box-tb" value="<?= $txn['id'] ?>" onclick="handleBulkCheckboxClick(event)">
+                                <td onclick="event.stopPropagation();">
+                                    <input type="checkbox" class="form-check-input select-box-tb" value="<?= $txn['id'] ?>" onclick="event.stopPropagation();">
                                 </td>
                                 <td onclick="load_content('View TopupBay Transaction','<?= $view_url ?>','nav-btn-topupbay-transaction')" style="cursor: pointer;">
                                     <?php if (!empty($txn['payment_id']) && $txn['payment_id'] !== '--'): ?>
@@ -420,12 +420,11 @@ function handleTopupBayStatusClick(element) {
     }
     
     // Individual checkbox clicks (event delegation for dynamic content)
-    // Individual checkbox clicks (manual handler now)
     document.addEventListener('click', function(e) {
-        const checkbox = e.target.closest('.select-box-tb');
-        if (checkbox) {
+        if (e.target.classList.contains('select-box-tb')) {
             updateBulkActionBar();
             
+            // Update select-all state
             const selectAll = document.getElementById('select-all-tb');
             if (selectAll) {
                 const allChecked = document.querySelectorAll('.select-box-tb:checked').length;
@@ -437,29 +436,15 @@ function handleTopupBayStatusClick(element) {
     });
     
     function updateBulkActionBar() {
-function handleBulkCheckboxClick(event) {
-    event.stopPropagation();
-}
-
-function handleBulkCheckboxRowClick(event) {
-    event.stopPropagation();
-    const checkbox = event.currentTarget.querySelector('.select-box-tb');
-    if (checkbox) {
-        checkbox.checked = !checkbox.checked;
-        updateBulkActionBar();
+        const selectedCount = document.querySelectorAll('.select-box-tb:checked').length;
+        const counter = document.getElementById('bulk-manage-tab-counter');
+        const actionBar = document.querySelector('.bulk-manage-tab');
+        
+        if (counter) counter.textContent = selectedCount;
+        if (actionBar) {
+            actionBar.style.display = selectedCount > 0 ? 'flex' : 'none';
+        }
     }
-}
-
-function updateBulkActionBar() {
-    const selectedCount = document.querySelectorAll('.select-box-tb:checked').length;
-    const counter = document.getElementById('bulk-manage-tab-counter');
-    const actionBar = document.querySelector('.bulk-manage-tab');
-    
-    if (counter) counter.textContent = selectedCount;
-    if (actionBar) {
-        actionBar.style.display = selectedCount > 0 ? 'flex' : 'none';
-    }
-}
 })();
 
 // Handle search input with debounce, but immediate trigger on clear
